@@ -5,7 +5,7 @@ Input = require('Input')
 Rainbow = require('Rainbow')
 Sound = require('Sound')
 
-Hexes = require('Hexes')
+Board = require('Board')
 
 local Rainbow = Rainbow
 local Settings = Settings
@@ -46,25 +46,9 @@ local rfuncs = Rainbow.funcs_for(1)
 local colorfor = rfuncs.smooth
 local colorize = rfuncs.smoothobj
 
-local board = {}
-
 local function setup()
   lines = {}
-  board.grid = Hexes.new(Settings.screen, layer, { texture = 1, color_multiplier = 1, rows = 7, columns = 7, size = { x = 64 } })
-  for i = -3, 3 do
-    board[i] = {}
-    local base = (i > 0) and (i - 3) or -3
-    local range = 6 - abs(i)
-    for j = base, base + range do
-      if board.grid.c[j + 4] then
-        board[i][j] = board.grid.c[j + 4][i + 4]
-      end
-      if board[i][j] then
-        board[i][j].tile = i + 4
-        board[i][j].color = j + 4
-      end
-    end
-  end
+  board = Board.new(Settings.screen, layer, { texture = 1, color_multiplier = 1, rows = 7, columns = 7, size = { x = 96 } })
 end
 
 local sim_cycles = 0
