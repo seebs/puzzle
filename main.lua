@@ -21,6 +21,7 @@ viewport:setScale(Settings.screen.width, Settings.screen.height)
 
 local layer = MOAILayer2D.new()
 layer:setViewport(viewport)
+layer.viewport = viewport
 MOAIRenderMgr.setRenderTable( { layer } )
 
 local pi = math.pi

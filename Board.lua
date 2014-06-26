@@ -14,14 +14,6 @@ local abs = math.abs
 local rawset = rawset
 local rawget = rawget
 
-Board.board_deck = MOAITileDeck2D.new()
-Board.board_deck:setTexture("hexes.png")
-Board.board_deck:setSize(2, 3,
-120/256, 144/512,
-8/256, 8/512,
-112/256, 128/512
-)
-
 Board.texture_deck = MOAITileDeck2D.new()
 Board.texture_deck:setTexture("texture.png")
 Board.texture_deck:setSize(2, 3,
@@ -30,17 +22,20 @@ Board.texture_deck:setSize(2, 3,
 112/256, 128/512
 )
 
-Board.gem_deck = MOAITileDeck2D.new()
-Board.gem_deck:setTexture("gems.png")
-Board.gem_deck:setSize(2, 3,
-120/256, 144/512,
-0/256, 8/512,
-128/256, 128/512
-)
+local function texload(name)
+  local t = MOAITexture.new()
+  t:load(name)
+  return t
+end
+Board.gem_multitex = MOAIMultiTexture.new()
+Board.gem_multitex:reserve(3)
+Board.gem_multitex:setTexture(1, texload("gems.png"))
+Board.gem_multitex:setTexture(2, texload("gloss.png"))
+Board.gem_multitex:setTexture(3, texload("sheen.png"))
 
-Board.gloss_deck = MOAITileDeck2D.new()
-Board.gloss_deck:setTexture("gloss.png")
-Board.gloss_deck:setSize(2, 3,
+Board.gem_deck = MOAITileDeck2D.new()
+Board.gem_deck:setTexture(gem_multitex)
+Board.gem_deck:setSize(2, 3,
 120/256, 144/512,
 0/256, 8/512,
 128/256, 128/512
@@ -94,11 +89,11 @@ local gemberhash = {
   end,
   pulse = function(self, pulsing)
     if pulsing then
-      self.gloss:setAttrLink(MOAIColor.INHERIT_COLOR, self.board.pulse_color_neg, MOAIColor.COLOR_TRAIT)
-      self.sheen:setAttrLink(MOAIColor.ADD_COLOR, self.board.pulse_color_pos, MOAIColor.COLOR_TRAIT)
+      -- self.gloss:setAttrLink(MOAIColor.INHERIT_COLOR, self.board.pulse_color_neg, MOAIColor.COLOR_TRAIT)
+      -- self.sheen:setAttrLink(MOAIColor.ADD_COLOR, self.board.pulse_color_pos, MOAIColor.COLOR_TRAIT)
     else
-      self.gloss:clearAttrLink(MOAIColor.INHERIT_COLOR)
-      self.sheen:clearAttrLink(MOAIColor.ADD_COLOR)
+      -- self.gloss:clearAttrLink(MOAIColor.INHERIT_COLOR)
+      -- self.sheen:clearAttrLink(MOAIColor.ADD_COLOR)
     end
   end,
   setColor = function(self, r, g, b)
@@ -147,6 +142,43 @@ local gembits = {
   end
 
 }
+
+Board.vsh = [[
+attribute vec4 position;
+attribute vec2 uv;
+attribute vec4 color;
+
+varying vec4 colorVarying;
+varying vec2 uvVaryingTile;
+varying vec2 uvVaryingEffects;
+
+void main () {
+	gl_Position = position;
+	vec2 scaled = uv * vec2(256.0 / 112.0, 512.0 / 120.0);
+	vec2 effects = scaled - floor(scaled);
+	
+	uvVaryingTile = uv;
+	uvVaryingEffects = uv * effects;
+	colorVarying = color;
+}
+]]
+Board.fsh = [[
+varying LOWP vec4 colorVarying;
+varying MEDP vec2 uvVaryingTile;
+varying MEDP vec2 uvVaryingEffects;
+
+uniform float glow;
+uniform vec4 color;
+uniform sampler2D rune;
+uniform sampler2D gloss;
+uniform sampler2D sheen;
+
+void main() {
+	vec4 gtext = texture2D(gloss, uvVaryingEffects);
+	float gscale = gtext.a * (1.0 - glow);
+        gl_FragColor = ( texture2D ( rune, uvVaryingTile ) * color * (1.0 - gscale)) + texture2D(sheen, uvVaryingEffects) * ((glow * 0.5) + 0.5);
+}
+]]
 
 Board.funcs = {}
 
@@ -288,11 +320,11 @@ function Board.new(screen, layer, args)
   end
 
   -- drawing primitives
-  bd.board_prop = MOAIProp2D.new()
-  bd.board_prop:setDeck(Board.board_deck)
-  bd.board_prop:setGrid(bd.grid)
-  bd.board_prop:setLoc(bd.x_offset, bd.y_offset)
-  bd.board_prop:setGridScale(Board.shape.x / bd.size.x, Board.shape.y / bd.size.y)
+  -- bd.board_prop = MOAIProp2D.new()
+  -- bd.board_prop:setDeck(Board.board_deck)
+  -- bd.board_prop:setGrid(bd.grid)
+  -- bd.board_prop:setLoc(bd.x_offset, bd.y_offset)
+  -- bd.board_prop:setGridScale(Board.shape.x / bd.size.x, Board.shape.y / bd.size.y)
 
   bd.texture_prop = MOAIProp2D.new()
   bd.texture_prop:setDeck(Board.texture_deck)
@@ -301,10 +333,10 @@ function Board.new(screen, layer, args)
   bd.texture_prop:setGridScale(Board.shape.x / bd.size.x, Board.shape.y / bd.size.y)
 
   bd.texture_prop:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE_MINUS_SRC_ALPHA)
-  bd.board_prop:setBlendMode(MOAIProp2D.GL_DST_COLOR, MOAIProp2D.GL_ONE)
+  -- bd.board_prop:setBlendMode(MOAIProp2D.GL_DST_COLOR, MOAIProp2D.GL_ONE)
 
   bd.layer:insertProp(bd.texture_prop)
-  bd.layer:insertProp(bd.board_prop)
+  -- bd.layer:insertProp(bd.board_prop)
 
   setmetatable(bd, { __index = Board.funcs })
 
@@ -319,38 +351,38 @@ function Board.new(screen, layer, args)
     end
     gem.board = bd
     gem.prop = MOAIProp2D.new()
+    gem.prop:setColor(1.0, 1.0, 1.0, 1.0)
+    local other_deck = MOAIGfxQuad2D.new()
+    other_deck:setTexture(Board.gem_multitex)
+    other_deck:setRect(1, -1, -1, 1, 1)
+    other_deck:setUVRect(0, 1, 1, 0)
     gem.prop:setDeck(Board.gem_deck)
+    gem.prop:setTexture(Board.gem_multitex)
+    local shader = MOAIShader.new()
+    shader:reserveUniforms(5)
+    shader:declareUniform(1, 'color', MOAIShader.UNIFORM_COLOR)
+    shader:declareUniform(2, 'glow', MOAIShader.UNIFORM_FLOAT)
+    shader:setAttrLink(1, gem.prop, MOAIColor.COLOR_TRAIT)
+    shader:setAttr(2, 0.0)
+    shader:declareUniformSampler(3, 'rune', 1)
+    shader:declareUniformSampler(4, 'gloss', 2)
+    shader:declareUniformSampler(5, 'sheen', 3)
+    shader:setVertexAttribute(1, 'position')
+    shader:setVertexAttribute(2, 'uv')
+    shader:setVertexAttribute(3, 'color')
+    shader:load(Board.vsh, Board.fsh)
+    gem.prop:setShader(shader)
     gem.index = math.random(6)
     gem.prop:setIndex(gem.index)
-    gem.sheen = MOAIProp2D.new()
-    gem.sheen:setDeck(Board.gloss_deck)
-    gem.sheen:setIndex(2)
-    gem.sheen:setAttrLink(MOAITransform.ATTR_X_LOC, gem.prop, MOAITransform.ATTR_X_LOC)
-    gem.sheen:setAttrLink(MOAITransform.ATTR_Y_LOC, gem.prop, MOAITransform.ATTR_Y_LOC)
-    gem.sheen:setAttrLink(MOAITransform.ATTR_X_SCL, gem.prop, MOAITransform.ATTR_X_SCL)
-    gem.sheen:setAttrLink(MOAITransform.ATTR_Y_SCL, gem.prop, MOAITransform.ATTR_Y_SCL)
-    gem.sheen:setAttrLink(MOAITransform.ATTR_X_PIV, gem.prop, MOAITransform.ATTR_X_PIV)
-    gem.sheen:setAttrLink(MOAITransform.ATTR_Y_PIV, gem.prop, MOAITransform.ATTR_Y_PIV)
-    gem.sheen:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE)
-    gem.sheen:setColor(1.0, 1.0, 1.0, 0.7)
-    gem.gloss = MOAIProp2D.new()
-    gem.gloss:setDeck(Board.gloss_deck)
-    gem.gloss:setIndex(1)
-    gem.gloss:setAttrLink(MOAITransform.ATTR_X_LOC, gem.prop, MOAITransform.ATTR_X_LOC)
-    gem.gloss:setAttrLink(MOAITransform.ATTR_Y_LOC, gem.prop, MOAITransform.ATTR_Y_LOC)
-    gem.gloss:setAttrLink(MOAITransform.ATTR_X_SCL, gem.prop, MOAITransform.ATTR_X_SCL)
-    gem.gloss:setAttrLink(MOAITransform.ATTR_Y_SCL, gem.prop, MOAITransform.ATTR_Y_SCL)
-    gem.gloss:setAttrLink(MOAITransform.ATTR_X_PIV, gem.prop, MOAITransform.ATTR_X_PIV)
-    gem.gloss:setAttrLink(MOAITransform.ATTR_Y_PIV, gem.prop, MOAITransform.ATTR_Y_PIV)
-    gem.gloss:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE_MINUS_SRC_ALPHA)
+
+    -- gem.sheen:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE)
+    -- gem.gloss:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE_MINUS_SRC_ALPHA)
     gem.prop:setScl(bd.gem_size)
 
     gem:setColor(bd.color(gem.index))
     gem:setAlpha(1.0)
 
     bd.layer:insertProp(gem.prop)
-    bd.layer:insertProp(gem.gloss)
-    bd.layer:insertProp(gem.sheen)
 
     gem:setLoc(gem.hex.sx, gem.hex.sy)
   end
@@ -368,7 +400,7 @@ function Board:from_screen(x, y)
     local hex = self.c[cx][cy]
     if hex then
       -- printf("hex at %d, %d is location %d, %d", cx, cy, hex.location.x, hex.location.y)
-      return hex, hex.location.x, hex.location.y, sx, sy
+      return hex, (hex.location and hex.location.x), (hex.location and hex.location.y), sx, sy
     end
   end
 end
