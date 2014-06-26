@@ -48,6 +48,8 @@ local rfuncs = Rainbow.funcs_for(1)
 local colorfor = rfuncs.smooth
 local colorize = rfuncs.smoothobj
 
+local board
+
 local function setup()
   lines = {}
   board = Board.new(Settings.screen, layer, { texture = 1, color_multiplier = 1, rows = 7, columns = 7, size = { x = 64 } })
@@ -106,11 +108,29 @@ local this_hex = nil
 local other_gem = nil
 local other_hex = nil
 local effective_drag_start = nil
+local accepting_input = false
+local next_action = nil
+
+local function handle_matches()
+  printf("handle_matches")
+  board:find_and_process_matches()
+  printf("returning resume_input")
+  return resume_input
+end
+
+local function resume_input()
+  printf("resume_input: returning nil")
+  accepting_input = true
+  return nil
+end
 
 -- for now, only handle events[1]
 local function input_handler(events)
   local e = events and events[1] or nil
   if not e then
+    return
+  end
+  if not accepting_input then
     return
   end
   -- Util.dump(e)
@@ -213,6 +233,8 @@ local function input_handler(events)
 	this_hex = nil
 	other_gem = nil
 	other_hex = nil
+	accepting_input = false
+	next_action = handle_matches
       end
     end
   end
@@ -222,3 +244,18 @@ Input.list()
 Input.set_layer(layer)
 
 Input.set_handler(input_handler)
+
+local function main_loop_function(loop)
+  accepting_input = true
+
+  while true do
+    if next_action then
+      next_action = next_action()
+    end
+    coroutine.yield()
+  end
+end
+
+local main_loop = MOAICoroutine.new()
+
+main_loop:run(main_loop_function, main_loop)

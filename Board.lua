@@ -9,7 +9,9 @@ local floor = math.floor
 local ceil = math.ceil
 local random = math.random
 local printf = Util.printf
+local sprintf = Util.sprintf
 local abs = math.abs
+local tremove = table.remove
 
 local rawset = rawset
 local rawget = rawget
@@ -54,12 +56,16 @@ local fnhash = {
 }
 
 local directions = {
-  nw = { x = 0, y = 1 },
-  ne = { x  = 1, y = 1 },
-  w = { x = -1, y = 0 },
-  e = { x = 1, y = 0 },
-  sw = { x = -1, y = -1 },
-  se = { x = 0, y = -1 },
+  nw = { x = 0, y = 1, opposite = 'se' },
+  ne = { x  = 1, y = 1, opposite = 'sw' },
+  w = { x = -1, y = 0, opposite = 'e' },
+  e = { x = 1, y = 0, opposite = 'w' },
+  sw = { x = -1, y = -1, opposite = 'ne' },
+  se = { x = 0, y = -1, opposite = 'nw' },
+}
+
+local direction_idx = {
+  "sw", "w", "nw", "ne", "e", "se"
 }
 
 function Board.neighbor(hex, dir)
@@ -96,7 +102,7 @@ local gemberhash = {
       if self.glow_anim then
         self.glow_anim:stop()
       end
-      self.glow_anim = self.shader:seekAttr(2, 0, 0.1)
+      self.glow_anim = self.shader:seekAttr(2, 0, 0.15)
     end
   end,
   setColor = function(self, r, g, b)
@@ -116,7 +122,7 @@ local gemberhash = {
     self.prop:setLoc(x + self.hex.parent.x_offset, y + self.hex.parent.y_offset)
   end,
   drop = function(self)
-    self:seekLoc(self.hex.sx, self.hex.sy, 0.1)
+    self:seekLoc(self.hex.sx, self.hex.sy, 0.15)
     self:setAlpha(1.0)
     self:pulse(false)
   end
@@ -297,11 +303,17 @@ function Board.new(screen, layer, args)
 
   local hex_locations = {}
 
+  bd.idx = {}
+  bd.subidx = {}
   for i = -3, 3 do
     bd.b[i] = {}
+    bd.idx[#bd.idx + 1] = i
+    local subidx = {}
+    bd.subidx[i] = subidx
     local base = (i > 0) and (i - 3) or -3
     local range = 6 - abs(i)
     for j = base, base + range do
+      subidx[#subidx + 1] = j
       bd.b[i][j] = bd.c[i + 4][j + 4]
       if bd.b[i][j] then
 	bd.b[i][j].location = { x = i, y = j }
@@ -355,6 +367,8 @@ function Board.new(screen, layer, args)
   setmetatable(bd, { __index = Board.funcs })
 
   bd.gems = {}
+  -- gems available for skyfall
+  bd.gempool = {}
 
   for i = 1, #hex_locations do
     local gem = {}
@@ -389,6 +403,10 @@ function Board.new(screen, layer, args)
     gem.prop:setShader(gem.shader)
     gem.index = math.random(6)
     gem.prop:setIndex(gem.index)
+    -- for marking matches and falling
+    gem.visited = false
+    gem.locked = false
+    gem.matched = {}
 
     -- gem.sheen:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE)
     -- gem.gloss:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE_MINUS_SRC_ALPHA)
@@ -425,13 +443,155 @@ function Board:to_screen(x, y)
   return sx + self.x_offset, sy + self.y_offset
 end
 
+function Board:iterate(func, ...)
+  for i = 1, #self.idx do
+    local idx = self.idx[i]
+    for j = 1, #self.subidx[idx] do
+      local subidx = self.subidx[idx][j]
+      local hex = self.b[idx][subidx]
+      local gem = hex and hex.gem
+      func(hex, gem, ...)
+    end
+  end
+end
+
+function Board:match_gem_direction(gem, dir)
+  local hex = gem.hex
+  local gems = { gem }
+  local count = 1
+  local next_hex = hex:neighbor(dir)
+  while next_hex do
+    if next_hex.gem and next_hex.gem.index == gem.index then
+      count = count + 1
+      gems[#gems + 1] = next_hex.gem
+      next_hex = next_hex:neighbor(dir)
+    else
+      next_hex = nil
+    end
+  end
+  if count >= 3 then
+    local match = {
+      color = gem.index,
+      count = count,
+      gems = gems,
+    }
+    self.matches[#self.matches + 1] = match
+    local diag = {}
+    for i = 1, #gems do
+      gems[i].matched[dir] = true
+      gems[i].locked = true
+      diag[#diag + 1] = sprintf("%d, %d", gems[i].hex.location.x, gems[i].hex.location.y)
+    end
+    printf("Found a match: color %d, gems %s.", gem.index, table.concat(diag, "; "))
+  end
+end
+
+function Board:match_one_gem(gem)
+  if not gem or not gem.hex then
+    return
+  end
+  local dirs = { 'e', 'ne', 'se' }
+  for i = 1, #dirs do
+    local dir = dirs[i]
+    if not gem.matched[dir] then
+      self:match_gem_direction(gem, dir)
+    end
+  end
+end
+
+function Board:find_and_process_matches()
+  self.active_match_color = 1
+  self:find_matches()
+  local count = 0
+  local action = nil
+  while #self.matches > 0 and count < 10 do
+    local this_color = {}
+    local matches_to_clear
+    local found_any = false
+    while not found_any and count < 10 do
+      for i = #self.matches, 1, -1 do
+        if self.matches[i].color == self.active_match_color then
+	  found_any = true
+          local match = tremove(self.matches, i)
+	  -- wait a little before processing another match
+	  if action then
+	    local slight_delay = MOAITimer.new()
+	    slight_delay:setSpan(0.1)
+	    slight_delay:start()
+	    printf("blocking on a timer")
+	    MOAICoroutine.blockOnAction(slight_delay)
+	  end
+	  action = self:clear_match(match)
+        end
+      end
+      count = count + 1
+      self.active_match_color = (self.active_match_color % 6) + 1
+    end
+    if action then
+      printf("blocking on an action")
+      MOAICoroutine.blockOnAction(action)
+    end
+    printf("starting skyfall")
+    self:skyfall(self.active_match_color)
+    self:find_matches()
+    count = count + 1
+  end
+end
+
 function Board:find_matches()
+  self.matches = {}
+  printf("Checking for matches...")
+  self:iterate(function(hex, gem) if gem then gem.visited = false; gem.locked = false; gem.matched = {} end end)
+  self:iterate(function(hex, gem) if gem then self:match_one_gem(gem) end end)
+end
+
+function Board:clear_match(match)
+  printf("Clearing %d gems.", #match.gems)
+  local action = nil
+  for i = 1, #match.gems do
+    local gem = match.gems[i]
+    local hex = gem.hex
+    self.gempool[#self.gempool + 1] = gem
+    -- break the connection between them
+    gem.hex = nil
+    hex.gem = nil
+    if gem.glow_anim then
+      gem.glow_anim:stop()
+    end
+    gem.glow_anim = gem.shader:seekAttr(2, 0.5, 0.2)
+    if gem.shrink_anim then
+      gem.shrink_anim:stop()
+    end
+    gem.shrink_anim = gem.prop:seekScl(0.1, 0.1, 0.2)
+    action = gem.shrink_anim
+  end
+  return action
+end
+
+function Board:skyfall(color)
+  local falling = direction_idx[color] or 'e'
+  local from = directions[falling].opposite
+  local missing = {}
+  local missing_names = {}
+  self:iterate(function(hex, gem) if not gem then missing[#missing + 1] = hex end end)
+  for i = 1, #missing do
+    local hex = missing[i]
+    missing_names[i] = sprintf("%d,%d", hex.location.x, hex.location.y)
+  end
+  printf("Missing gems: %s", table.concat(missing_names, "; "))
+  -- do something clever
 end
 
 Board.funcs = {
   from_screen = Board.from_screen,
   to_screen = Board.to_screen,
-  matches = Board.matches,
+  find_matches = Board.find_matches,
+  find_and_process_matches = Board.find_and_process_matches,
+  match_one_gem = Board.match_one_gem,
+  match_gem_direction = Board.match_gem_direction,
+  iterate = Board.iterate,
+  clear_match = Board.clear_match,
+  skyfall = Board.skyfall
 }
 
 return Board
