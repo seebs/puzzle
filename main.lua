@@ -174,10 +174,13 @@ local function input_handler(events)
 	    end
 	  end
 	  if other_gem then
-	    if distance_scale and distance_scale > 0.75 then
+	    if not distance_scale or distance_scale < 0.3 then
+	      other_gem:drop()
+	      other_gem = nil
+	    elseif distance_scale > 0.75 then
 	      -- swap the gems
 	      other_hex, this_hex = this_hex, other_hex
-	      -- swap location/gem bindings (since the this_gem/other_gem references changed)
+	      -- swap location/gem bindings (since the this_hex/other_hex references changed)
 	      this_gem.hex, other_gem.hex = this_hex, other_hex
 	      this_hex.gem, other_hex.gem = this_gem, other_gem
 	      -- these don't seem to need to change.
@@ -185,12 +188,10 @@ local function input_handler(events)
 	      -- distance_scale, inverse_scale = inverse_scale, distance_scale
 	      local nx, ny = board:to_screen(this_hex.x, this_hex.y)
 	      effective_drag_start = { x = nx, y = ny }
-	    end
-	    if distance_scale > 0.3 then
-	      other_gem:pulse(true)
-	      -- other_gem:setLoc(that_side.x, that_side.y)
-	    else
 	      other_gem:drop()
+	      other_gem = nil
+	    elseif distance_scale > 0.3 then
+	      other_gem:pulse(true)
 	    end
 	  end
 	  if this_side then
