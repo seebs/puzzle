@@ -1,7 +1,7 @@
 local Settings = { screen = {} }
 
-Settings.screen.width = MOAIEnvironment.horizontalResolution or 1024
-Settings.screen.height = MOAIEnvironment.verticalResolution or 768
+Settings.screen.width = MOAIEnvironment.horizontalResolution or 768
+Settings.screen.height = MOAIEnvironment.verticalResolution or 1024
 print("width: " .. tostring(Settings.screen.width) .. ", height: " .. tostring(Settings.screen.height))
 Settings.screen.dpi = MOAIEnvironment.screenDpi or 100
 Settings.screen.left = 0 - Settings.screen.width / 2

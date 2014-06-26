@@ -52,7 +52,9 @@ function Util.dump(obj, name, prefix, seen)
     printf("%s}", prefix)
   else
     printf("%s%s = %s", prefix, name, tostring(obj))
-    seen[obj] = true
+    if obj ~= nil then
+      seen[obj] = true
+    end
   end
 end
 

@@ -2,6 +2,9 @@ local Board = {}
 
 Board.shape = { x = 112, y = 128 }
 
+local atan2 = math.atan2
+local pi = math.pi
+local sqrt = math.sqrt
 local floor = math.floor
 local ceil = math.ceil
 local random = math.random
@@ -10,6 +13,38 @@ local abs = math.abs
 
 local rawset = rawset
 local rawget = rawget
+
+Board.board_deck = MOAITileDeck2D.new()
+Board.board_deck:setTexture("hexes.png")
+Board.board_deck:setSize(2, 3,
+120/256, 144/512,
+8/256, 8/512,
+112/256, 128/512
+)
+
+Board.texture_deck = MOAITileDeck2D.new()
+Board.texture_deck:setTexture("texture.png")
+Board.texture_deck:setSize(2, 3,
+120/256, 144/512,
+8/256, 8/512,
+112/256, 128/512
+)
+
+Board.gem_deck = MOAITileDeck2D.new()
+Board.gem_deck:setTexture("gems.png")
+Board.gem_deck:setSize(2, 3,
+120/256, 144/512,
+0/256, 8/512,
+128/256, 128/512
+)
+
+Board.gloss_deck = MOAITileDeck2D.new()
+Board.gloss_deck:setTexture("gloss.png")
+Board.gloss_deck:setSize(2, 3,
+120/256, 144/512,
+0/256, 8/512,
+128/256, 128/512
+)
 
 local fnhash = {
   tile = function(t, k, v) t.parent.grid:setTile(t.x, t.y, v); rawset(t, '_tile', v) end,
@@ -22,6 +57,24 @@ local fnhash = {
   tscale = function(t, k, v) t.parent.texture_grid:setScale(t.x, t.y, v); rawset(t, '_tscale', v) end,
 }
 
+local directions = {
+  nw = { x = 0, y = 1 },
+  ne = { x  = 1, y = 1 },
+  w = { x = -1, y = 0 },
+  e = { x = 1, y = 0 },
+  sw = { x = -1, y = -1 },
+  se = { x = 0, y = -1 },
+}
+
+function Board.neighbor(hex, dir)
+  if not directions[dir] then
+    return nil
+  end
+  local x, y = hex.location.x, hex.location.y
+  x, y = x + directions[dir].x, y + directions[dir].y
+  return hex.parent.b[x] and hex.parent.b[x][y] or nil
+end
+
 local memberhash = {
   tile = '_tile',
   color = '_color',
@@ -31,6 +84,38 @@ local memberhash = {
   tcolor = '_tcolor',
   talpha = '_talpha',
   tscale = '_tscale',
+  neighbor = Board.neighbor
+}
+
+local gemberhash = {
+  setAlpha = function(self, alpha)
+    self._a = alpha or 1.0
+    self.prop:setColor(self._r, self._g, self._b, self._a)
+  end,
+  pulse = function(self, pulsing)
+    if pulsing then
+      self.gloss:setAttrLink(MOAIColor.INHERIT_COLOR, self.board.pulse_color_neg, MOAIColor.COLOR_TRAIT)
+      self.sheen:setAttrLink(MOAIColor.ADD_COLOR, self.board.pulse_color_pos, MOAIColor.COLOR_TRAIT)
+    else
+      self.gloss:clearAttrLink(MOAIColor.INHERIT_COLOR)
+      self.sheen:clearAttrLink(MOAIColor.ADD_COLOR)
+    end
+  end,
+  setColor = function(self, r, g, b)
+    self._r = r or 1.0
+    self._g = g or r
+    self._b = b or r
+    self._a = self._a or 1.0
+    self.prop:setColor(self._r, self._g, self._b, self._a)
+  end,
+  setLoc = function(self, x, y)
+    self.prop:setLoc(x + self.hex.parent.x_offset, y + self.hex.parent.y_offset)
+  end,
+  drop = function(self)
+    self:setLoc(self.hex.sx, self.hex.sy)
+    self:setAlpha(1.0)
+    self:pulse(false)
+  end
 }
 
 local hexbits = {
@@ -43,10 +128,27 @@ local hexbits = {
     end
   end,
   __index = function(t, k)
-    return rawget(t, memberhash[k] or k)
+    if type(memberhash[k]) == 'function' then
+      return memberhash[k]
+    else
+      return rawget(t, memberhash[k] or k)
+    end
+  end
+}
+
+local gembits = {
+  -- also stash values in the grid for real
+  __index = function(t, k)
+    if type(gemberhash[k]) == 'function' then
+      return gemberhash[k]
+    else
+      return rawget(t, gemberhash[k] or k)
+    end
   end
 
 }
+
+Board.funcs = {}
 
 function Board.new(screen, layer, args)
   args = args or {}
@@ -62,8 +164,29 @@ function Board.new(screen, layer, args)
   bd.size.y = args.size and args.size.y or ((bd.size.x * Board.shape.y) / (Board.shape.x))
   bd.gem_size = bd.size.x * 1.0
   bd.rows = args.rows or floor(((bd.screen.height * 4) / (bd.size.y * 3)) - 0.5)
+  -- shared pulse value for the whole board
+  bd.pulse_pos = MOAIAnimCurve.new()
+  bd.pulse_pos:reserveKeys(2)
+  bd.pulse_pos:setKey(1, 0, 0.0, MOAIEaseType.LINEAR)
+  bd.pulse_pos:setKey(2, 0.5, 0.3, MOAIEaseType.LINEAR)
+  bd.pulse_neg = MOAIAnimCurve.new()
+  bd.pulse_neg:reserveKeys(2)
+  bd.pulse_neg:setKey(1, 0, 1.0, MOAIEaseType.LINEAR)
+  bd.pulse_neg:setKey(2, 0.5, 0.7, MOAIEaseType.LINEAR)
+  bd.pulse_timer = MOAITimer.new()
+  bd.pulse_timer:setSpan(0, bd.pulse_pos:getLength())
+  bd.pulse_timer:setMode(MOAITimer.PING_PONG)
+  bd.pulse_pos:setAttrLink(MOAIAnimCurve.ATTR_TIME, bd.pulse_timer, MOAITimer.ATTR_TIME)
+  bd.pulse_neg:setAttrLink(MOAIAnimCurve.ATTR_TIME, bd.pulse_timer, MOAITimer.ATTR_TIME)
+  bd.pulse_timer:start()
+  bd.pulse_color_pos = MOAIColor.new()
+  bd.pulse_color_pos:setColor(1.0, 1.0, 1.0, 1.0)
+  bd.pulse_color_pos:setAttrLink(MOAIColor.ATTR_A_COL, bd.pulse_pos, MOAIAnimCurve.ATTR_VALUE)
+  bd.pulse_color_neg = MOAIColor.new()
+  bd.pulse_color_neg:setColor(1.0, 1.0, 1.0, 1.0)
+  bd.pulse_color_neg:setAttrLink(MOAIColor.ATTR_A_COL, bd.pulse_neg, MOAIAnimCurve.ATTR_VALUE)
 
-  printf("Base size %dx%d px => %dx%d grid.", bd.size.x, bd.size.y, bd.columns, bd.rows)
+  -- printf("Base size %dx%d px => %dx%d grid.", bd.size.x, bd.size.y, bd.columns, bd.rows)
   bd.grid = MOAIGridFancy.new()
   bd.grid:initAxialHexGrid(bd.columns, bd.rows, bd.size.x, bd.size.y, 3, 3)
   -- an additional grid to live in front of the other
@@ -110,6 +233,7 @@ function Board.new(screen, layer, args)
     bd.c[x] = {}
     for y = 1, bd.rows do
       local s = { parent = bd, x = x, y = y }
+      s.sx, s.sy = bd.grid:getTileLoc(x, y, MOAIGridSpace.TILE_CENTER)
       bd.c[x][y] = s
       bd.r[y][x] = s
       setmetatable(s, hexbits)
@@ -132,15 +256,35 @@ function Board.new(screen, layer, args)
     local base = (i > 0) and (i - 3) or -3
     local range = 6 - abs(i)
     for j = base, base + range do
-      bd.b[i][j] = bd.c[j + 4][i + 4]
+      bd.b[i][j] = bd.c[i + 4][j + 4]
       if bd.b[i][j] then
+	bd.b[i][j].location = { x = i, y = j }
+	bd.b[i][j].grid_location = { x = i + 4, y = j + 4 }
         bd.hex_count = bd.hex_count + 1
-	hex_locations[#hex_locations + 1] = { i, j }
+	hex_locations[#hex_locations + 1] = { x = i, y = j, hex = bd.b[i][j] }
         bd.b[i][j].tile = 1
-        bd.b[i][j].ttile = ((i + j) % 6) + 1
-        bd.b[i][j].color = j + 4
+        bd.b[i][j].ttile = 1
+        -- bd.b[i][j].ttile = ((i + j) % 6) + 1
+        -- bd.b[i][j].color = j + 4
       end
     end
+  end
+
+  bd.directions = directions
+
+  -- compute angles and distances for each direction; these can
+  -- vary because you might have hexes that aren't regular
+  local center = { x = bd.b[0][0].sx, y = bd.b[0][0].sy }
+  for dir, offsets in pairs(directions) do
+    local point = { x = bd.b[offsets.x][offsets.y].sx, y = bd.b[offsets.x][offsets.y].sy }
+    local dx = point.x - center.x
+    local dy = point.y - center.y
+    local angle = atan2(dx, dy)
+    angle = (angle < 0) and (angle + (pi * 2)) or angle
+    offsets.angle = angle
+    offsets.dist = sqrt(dx * dx + dy * dy)
+    -- printf("%s: dx, dy %.1f, %.1f. angle %.1f deg, dist %.1f",
+      -- dir, dx, dy, offsets.angle * 180 / pi, offsets.dist)
   end
 
   -- drawing primitives
@@ -162,16 +306,22 @@ function Board.new(screen, layer, args)
   bd.layer:insertProp(bd.texture_prop)
   bd.layer:insertProp(bd.board_prop)
 
+  setmetatable(bd, { __index = Board.funcs })
+
   bd.gems = {}
 
   for i = 1, #hex_locations do
     local gem = {}
-    gem.location = hex_locations[i]
+    setmetatable(gem, gembits)
+    gem.hex = hex_locations[i].hex
+    if gem.hex then
+      gem.hex.gem = gem
+    end
+    gem.board = bd
     gem.prop = MOAIProp2D.new()
     gem.prop:setDeck(Board.gem_deck)
     gem.index = math.random(6)
     gem.prop:setIndex(gem.index)
-    gem.prop:setColor(bd.color(gem.index))
     gem.sheen = MOAIProp2D.new()
     gem.sheen:setDeck(Board.gloss_deck)
     gem.sheen:setIndex(2)
@@ -182,6 +332,7 @@ function Board.new(screen, layer, args)
     gem.sheen:setAttrLink(MOAITransform.ATTR_X_PIV, gem.prop, MOAITransform.ATTR_X_PIV)
     gem.sheen:setAttrLink(MOAITransform.ATTR_Y_PIV, gem.prop, MOAITransform.ATTR_Y_PIV)
     gem.sheen:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE)
+    gem.sheen:setColor(1.0, 1.0, 1.0, 0.7)
     gem.gloss = MOAIProp2D.new()
     gem.gloss:setDeck(Board.gloss_deck)
     gem.gloss:setIndex(1)
@@ -192,15 +343,18 @@ function Board.new(screen, layer, args)
     gem.gloss:setAttrLink(MOAITransform.ATTR_X_PIV, gem.prop, MOAITransform.ATTR_X_PIV)
     gem.gloss:setAttrLink(MOAITransform.ATTR_Y_PIV, gem.prop, MOAITransform.ATTR_Y_PIV)
     gem.gloss:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE_MINUS_SRC_ALPHA)
-    gem.prop:setPiv(0.22, -0.4)
-    gem.prop:setLoc(bd.grid:getTileLoc(gem.location[1], gem.location[2], MOAIGridSpace.TILE_CENTER))
     gem.prop:setScl(bd.gem_size)
+
+    gem:setColor(bd.color(gem.index))
+    gem:setAlpha(1.0)
+
     bd.layer:insertProp(gem.prop)
     bd.layer:insertProp(gem.gloss)
     bd.layer:insertProp(gem.sheen)
+
+    gem:setLoc(gem.hex.sx, gem.hex.sy)
   end
 
-  bd.from_screen = Board.from_screen
   return bd
 end
 
@@ -208,41 +362,29 @@ function Board:from_screen(x, y)
   x = x - self.x_offset
   y = y - self.y_offset
   local cx, cy = self.grid:locToCoord(x, y)
+  local sx, sy = self:to_screen(cx, cy)
+  -- printf("grid:locToCoord(%d, %d) => %s, %s (center %s, %s)", x, y, tostring(cx), tostring(cy), tostring(sx), tostring(sy))
   if self.c[cx] then
-    return self.c[cx][cy], cx, cy
+    local hex = self.c[cx][cy]
+    if hex then
+      -- printf("hex at %d, %d is location %d, %d", cx, cy, hex.location.x, hex.location.y)
+      return hex, hex.location.x, hex.location.y, sx, sy
+    end
   end
 end
 
-Board.board_deck = MOAITileDeck2D.new()
-Board.board_deck:setTexture("hexes.png")
-Board.board_deck:setSize(2, 3,
-120/256, 144/512,
-8/256, 8/512,
-112/256, 128/512
-)
+function Board:to_screen(x, y)
+  local sx, sy = self.grid:getTileLoc(x, y, MOAIGridSpace.TILE_CENTER)
+  return sx + self.x_offset, sy + self.y_offset
+end
 
-Board.texture_deck = MOAITileDeck2D.new()
-Board.texture_deck:setTexture("texture.png")
-Board.texture_deck:setSize(2, 3,
-120/256, 144/512,
-8/256, 8/512,
-112/256, 128/512
-)
+function Board:find_matches()
+end
 
-Board.gem_deck = MOAITileDeck2D.new()
-Board.gem_deck:setTexture("gems.png")
-Board.gem_deck:setSize(2, 3,
-120/256, 144/512,
-0/256, 8/512,
-128/256, 128/512
-)
-
-Board.gloss_deck = MOAITileDeck2D.new()
-Board.gloss_deck:setTexture("gloss.png")
-Board.gloss_deck:setSize(2, 3,
-120/256, 144/512,
-0/256, 8/512,
-128/256, 128/512
-)
+Board.funcs = {
+  from_screen = Board.from_screen,
+  to_screen = Board.to_screen,
+  matches = Board.matches,
+}
 
 return Board

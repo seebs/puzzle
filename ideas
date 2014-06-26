@@ -3,6 +3,8 @@ Loose ideas:
 	whether you get low-tier abilities from multiple leaders or multiple
 	abilities from one.
 
+	Health: Maybe you should get temp hit points from enemies or something?
+
 	Possibly party "role" slots determining damage/healing/hp allocation?
 
 	Limit operations by something other than time:
@@ -10,3 +12,41 @@ Loose ideas:
 		distance drawn?
 		something like "action points"?
 
+	Party roles:
+		author (special author traits)
+		protagonist (1-3 traits)
+		antagonist (1-2 traits)
+		bit players (no traits)
+
+		A single slot can have more than one role. Author-only slot does
+		not contribute combat stats.
+
+		Parties can have up to 6 slots, but some will have fewer.
+
+	Element Slots:
+		protagonist, antagonist, author, character
+
+	Formations:
+		Anecdote: Single character, author/protagonist/character (1 trait)
+		Collaboration: 2 authors, 1 protagonist/character (2 trait)
+		Mary Sue: Single author/protagonist (3 trait), plus bit players
+
+	Stats:
+		attack (genre)
+		defense (genre)
+		health (genre) => call "inspiration" (enemy damage "word count"?)
+		protagonist traits (up to 3)
+		antagonist traits (up to 2)
+		author trait
+
+	Genres:
+		romance (heart, red)
+		fantasy (wizard's hat, orange)
+		action (explosion, yellow)
+		scifi (atom, green)
+		crime (???, blue)
+		gothic (bat, purple)
+	
+	Defense:
+		dmg = dmg / (pow(2, defense/damage))
+		shielding of some sort (presumably pre-defense)

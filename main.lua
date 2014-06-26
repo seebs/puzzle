@@ -26,6 +26,7 @@ MOAIRenderMgr.setRenderTable( { layer } )
 local pi = math.pi
 local fmod = math.fmod
 local random = math.random
+local pi = math.pi
 local sin = math.sin
 local min = math.min
 local max = math.max
@@ -48,7 +49,7 @@ local colorize = rfuncs.smoothobj
 
 local function setup()
   lines = {}
-  board = Board.new(Settings.screen, layer, { texture = 1, color_multiplier = 1, rows = 7, columns = 7, size = { x = 96 } })
+  board = Board.new(Settings.screen, layer, { texture = 1, color_multiplier = 1, rows = 7, columns = 7, size = { x = 64 } })
 end
 
 local sim_cycles = 0
@@ -71,7 +72,7 @@ frames:run(every_frame)
 
 local stable_frames = 0
 local count = 0
-local max_count = 3000
+local max_count = nil
 
 function do_draw()
   local fps = MOAISim.getPerformance()
@@ -85,7 +86,7 @@ function do_draw()
   sim_cycles = 0
   draw_cycles = draw_cycles + 1
   count = count + 1
-  if count > max_count then
+  if max_count and (count > max_count) then
     os.exit(0)
   end
 end
@@ -99,3 +100,123 @@ layer:insertProp(sdp)
 
 setup()
 
+local this_gem = nil
+local this_hex = nil
+local other_gem = nil
+local other_hex = nil
+local effective_drag_start = nil
+
+-- for now, only handle events[1]
+local function input_handler(events)
+  local e = events and events[1] or nil
+  if not e then
+    return
+  end
+  -- Util.dump(e)
+  if e.down then
+    if e.state == 'press' then
+      local hex = board:from_screen(e.x, e.y)
+      -- Util.dump(hex)
+      if hex then
+        local gem = hex.gem
+	this_hex = hex
+	effective_drag_start = { x = e.start_x, y = e.start_y }
+	if gem then
+	  this_gem = gem
+	  this_gem:pulse(true)
+	end
+      end
+    elseif e.state == 'drag' then
+      if this_gem then
+	local dx, dy
+	dx = e.x - effective_drag_start.x
+	dy = e.y - effective_drag_start.y
+	if dx ~=0 or dy ~= 0 then
+	  local angle = atan2(dx, dy)
+	  if angle < 0 then
+	    angle = angle + (pi * 2)
+	  end
+	  local distance = sqrt(dx * dx + dy * dy)
+	  local closest_dir = nil
+	  local closest_angle = 99999
+	  local distance_scale = 0
+	  local inverse_scale = 0
+
+	  for dir, offsets in pairs(board.directions) do
+	    local diff = abs(offsets.angle - angle)
+	    if diff < closest_angle then
+	      closest_dir = dir
+	      closest_angle = diff
+	      distance_scale = distance / offsets.dist
+	    end
+	  end
+
+	  -- printf("best angle: %s [angle diff %.1f deg], scale %.1f", closest_dir, closest_angle * 180 / pi, distance_scale)
+	  local next_hex = this_hex:neighbor(closest_dir)
+	  local this_side, that_side
+	  inverse_scale = 1 - distance_scale
+	  if next_hex then
+	    if other_gem and other_gem ~= next_hex.gem then
+	      other_gem:drop()
+	    end
+	    other_hex = next_hex
+	    other_gem = other_hex.gem
+	    this_side = { x = (other_hex.sx * distance_scale) + (this_hex.sx * inverse_scale),
+	                  y = (other_hex.sy * distance_scale) + (this_hex.sy * inverse_scale) }
+	    that_side = { x = (other_hex.sx * inverse_scale) + (this_hex.sx * distance_scale),
+	                  y = (other_hex.sy * inverse_scale) + (this_hex.sy * distance_scale) }
+	  else
+	    if other_gem then
+	      other_gem:drop()
+	      other_gem = nil
+	      other_hex = nil
+	    end
+	  end
+	  if other_gem then
+	    if distance_scale and distance_scale > 0.75 then
+	      -- swap the gems
+	      other_hex, this_hex = this_hex, other_hex
+	      -- swap location/gem bindings (since the this_gem/other_gem references changed)
+	      this_gem.hex, other_gem.hex = this_hex, other_hex
+	      this_hex.gem, other_hex.gem = this_gem, other_gem
+	      -- these don't seem to need to change.
+	      -- this_side, that_side = that_side, this_side
+	      -- distance_scale, inverse_scale = inverse_scale, distance_scale
+	      local nx, ny = board:to_screen(this_hex.x, this_hex.y)
+	      effective_drag_start = { x = nx, y = ny }
+	    end
+	    if distance_scale > 0.3 then
+	      other_gem:pulse(true)
+	      -- other_gem:setLoc(that_side.x, that_side.y)
+	    else
+	      other_gem:drop()
+	    end
+	  end
+	  if this_side then
+	    this_gem:setLoc(this_side.x, this_side.y)
+	  else
+	    this_gem:setLoc(this_hex.sx + dx, this_hex.sy + dy)
+	  end
+	end
+      end
+    end
+  else
+    if e.state == 'release' then
+      if this_gem then
+	this_gem:drop()
+	if other_gem then
+	  other_gem:drop()
+	end
+	this_gem = nil
+	this_hex = nil
+	other_gem = nil
+	other_hex = nil
+      end
+    end
+  end
+end
+
+Input.list()
+Input.set_layer(layer)
+
+Input.set_handler(input_handler)
