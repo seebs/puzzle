@@ -100,6 +100,12 @@ local gemberhash = {
     self._a = alpha or 1.0
     self.prop:setColor(self._r, self._g, self._b, self._a)
   end,
+  setGlow = function(self, value)
+    if self.glow_anim then
+      self.glow_anim:stop()
+    end
+    self.shader:setAttr(2, value)
+  end,
   pulse = function(self, pulsing)
     if pulsing then
       self.shader:setAttrLink(2, self.board.pulse_color_pos, MOAIColor.ATTR_A_COL)
@@ -111,10 +117,11 @@ local gemberhash = {
       self.glow_anim = self.shader:seekAttr(2, 0, 0.15)
     end
   end,
-  setIndex = function(self, idx)
+  reset = function(self, idx)
     self.index = idx
     self.prop:setIndex(idx)
     self:setColor(self.board.color(self.index))
+    self:setGlow(0.0)
   end,
   setColor = function(self, r, g, b)
     self._r = r or 1.0
@@ -441,7 +448,7 @@ function Board.new(screen, layer, args)
     shader:load(Board.vsh, Board.fsh)
     gem.shader = shader
     gem.prop:setShader(gem.shader)
-    gem:setIndex(math.random(6))
+    gem:reset(math.random(6))
     -- for marking matches and falling
     gem.visited = false
     gem.locked = false
@@ -553,6 +560,7 @@ function Board:match_gem_direction(gem, dir)
     for i = 1, #gems do
       gems[i].matched[dir] = true
       gems[i].locked = true
+      gems[i]:setGlow(1.0)
       diag[#diag + 1] = sprintf("%d, %d", gems[i].hex.location.x, gems[i].hex.location.y)
     end
     printf("Found a match: color %d, gems %s.", gem.index, table.concat(diag, "; "))
@@ -577,7 +585,7 @@ function Board:find_and_process_matches()
   self:find_matches()
   local count = 0
   local action = nil
-  while #self.matches > 0 and count < 10 do
+  while #self.matches > 0 do
     local this_color = {}
     local matches_to_clear
     local found_any = false
@@ -609,8 +617,11 @@ function Board:find_and_process_matches()
       MOAICoroutine.blockOnAction(action)
     end
     printf("starting skyfall, color %d (dir %s)", self.active_match_color, direction_idx[self.active_match_color])
-    self:skyfall(self.active_match_color)
+    local any_missing = self:skyfall(self.active_match_color)
     self:find_matches()
+    if any_missing > 0 and #self.matches < 1 then
+      printf("Uh-oh, %d missing gem(s), no matches.", any_missing)
+    end
     self.active_match_color = (self.active_match_color % 6) + 1
     count = count + 1
   end
@@ -634,6 +645,7 @@ function Board:clear_match(match)
       self.gempool[#self.gempool + 1] = gem
       -- break the connection between them
       gem.hex = nil
+      gem.locked = false
       hex.gem = nil
       if gem.glow_anim then
         gem.glow_anim:stop()
@@ -651,13 +663,15 @@ end
 
 function Board:skyfall(color)
   local dir = direction_idx[color] or 'e'
-  local any_missing = true
+  local any_falling = true
   local action = nil
+  local any_missing = 0
   printf("skyfall, direction %s", dir)
   -- self:label_dir(dir)
 
-  while any_missing do
-    any_missing = false
+  while any_falling do
+    any_missing = 0
+    any_falling = false
     for i = 1, #self.idx do
       local falling = false
       local idx = self.idx[i]
@@ -668,32 +682,36 @@ function Board:skyfall(color)
         local hex = self.dirs[dir][idx][subidx]
         local gem = hex and hex.gem
         if not hex.gem then
-	  printf("%d,%d missing, things will fall", idx, subidx)
-	  any_missing = true
+	  -- printf("%d,%d missing, things will fall", idx, subidx)
           falling = true
-	  missing_row = missing_row + 1
+	  any_missing = any_missing + 1
         elseif falling then
-          gem.hex = prevhex
-	  hex.gem = nil
-	  prevhex.gem = gem
-	  printf("%d,%d falling to previous hex", idx, subidx)
-          action = gem:seekLoc(gem.hex.sx, gem.hex.sy, 0.15, MOAIEaseType.LINEAR)
+	  if not gem.locked then
+            gem.hex = prevhex
+	    hex.gem = nil
+	    prevhex.gem = gem
+	    -- printf("%d,%d falling to previous hex", idx, subidx)
+            action = gem:seekLoc(gem.hex.sx, gem.hex.sy, 0.15, MOAIEaseType.LINEAR)
+	    any_falling = true
+	  else
+	    -- gems above this one shouldn't fall
+	    falling = false
+	  end
         end
         prevhex = hex
       end
       if falling then
-	printf("adding a new gem for row %d (%d missing), dir %s, dx/dy %d/%d", idx, missing_row, dir, directions[dir].dx, directions[dir].dy)
+	-- printf("adding a new gem for row %d (%d missing), dir %s, dx/dy %d/%d", idx, missing_row, dir, directions[dir].dx, directions[dir].dy)
         local newgem = table.remove(self.gempool)
-	newgem:setIndex(math.random(6))
+	newgem:reset(math.random(6))
 	newgem.hex = prevhex
 	newgem:setLoc(newgem.hex.sx + directions[dir].dx, newgem.hex.sy + directions[dir].dy)
 	newgem.prop:setScl(self.gem_size)
 	newgem.prop:setVisible(true)
 	newgem:pulse(false)
 	prevhex.gem = newgem
-	printf("gem initialized...")
 	action = newgem:seekLoc(newgem.hex.sx, newgem.hex.sy, 0.15, MOAIEaseType.LINEAR)
-	printf("gem asked to seek its location (%s)", tostring(action))
+	any_falling = true
       end
     end
     if action then
@@ -701,6 +719,7 @@ function Board:skyfall(color)
       MOAICoroutine.blockOnAction(action)
     end
   end
+  return any_missing
 end
 
 Board.funcs = {
