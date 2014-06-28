@@ -100,11 +100,11 @@ local gemberhash = {
     self._a = alpha or 1.0
     self.prop:setColor(self._r, self._g, self._b, self._a)
   end,
-  setGlow = function(self, value)
+  setGlow = function(self, value, time)
     if self.glow_anim then
       self.glow_anim:stop()
     end
-    self.shader:setAttr(2, value)
+    self.glow_anim = self.shader:seekAttr(2, value, time or 0.1)
   end,
   pulse = function(self, pulsing)
     if pulsing then
@@ -121,7 +121,7 @@ local gemberhash = {
     self.index = idx
     self.prop:setIndex(idx)
     self:setColor(self.board.color(self.index))
-    self:setGlow(0.0)
+    self:setGlow(0.0, 0)
   end,
   setColor = function(self, r, g, b)
     self._r = r or 1.0
@@ -560,7 +560,8 @@ function Board:match_gem_direction(gem, dir)
     for i = 1, #gems do
       gems[i].matched[dir] = true
       gems[i].locked = true
-      gems[i]:setGlow(1.0)
+      gems[i]:setGlow(1.0, 0.1)
+      gems[i].match = match
       diag[#diag + 1] = sprintf("%d, %d", gems[i].hex.location.x, gems[i].hex.location.y)
     end
     printf("Found a match: color %d, gems %s.", gem.index, table.concat(diag, "; "))
@@ -641,7 +642,7 @@ function Board:clear_match(match)
     local gem = match.gems[i]
     local hex = gem.hex
     -- if this gem was in a match we already did, ignore it.
-    if hex and hex.gem == gem then
+    if hex and hex.gem == gem and gem.match == match then
       self.gempool[#self.gempool + 1] = gem
       -- break the connection between them
       gem.hex = nil
@@ -715,7 +716,6 @@ function Board:skyfall(color)
       end
     end
     if action then
-      printf("delaying")
       MOAICoroutine.blockOnAction(action)
     end
   end
