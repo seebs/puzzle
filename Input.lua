@@ -64,7 +64,8 @@ end
 
 function Input.pointer_handler(x, y)
   if Input.layer then
-    x, y = Input.layer:wndToWorld(x, y)
+    local nx, ny = Input.layer:wndToWorld(x, y)
+    x, y = nx, ny
   end
   Input.states[1].x = x
   Input.states[1].y = y

@@ -127,11 +127,11 @@ local gemberhash = {
     if self.loc_anim then
       self.loc_anim:stop()
     end
-    self.loc_anim = self.prop:seekLoc(x + self.hex.parent.x_offset, y + self.hex.parent.y_offset, ...)
+    self.loc_anim = self.prop:seekLoc(x, y, ...)
     return self.loc_anim
   end,
   setLoc = function(self, x, y)
-    self.prop:setLoc(x + self.hex.parent.x_offset, y + self.hex.parent.y_offset)
+    self.prop:setLoc(x, y)
   end,
   pickup = function(self)
     self:pulse(true)
@@ -209,10 +209,11 @@ uniform sampler2D sheen;
 
 void main() {
 	vec4 gtext = texture2D(gloss, uvVaryingEffects);
-	// vec4 fakeColor = vec4(uvVaryingTile.x, uvVaryingTile.y, uvVaryingEffects.x, 1.0);
+	vec4 tile = texture2D(rune, uvVaryingTile);
+	// vec4 fakeColor = vec4(1.0, 1.0, 1.0, 1.0);
 	float gscale = (1.0 - (gtext.a * 1.0 - glow));
 	vec4 gcolor = vec4(color.r * gscale, color.g * gscale, color.b * gscale, color.a);
-        gl_FragColor = ( texture2D ( rune, uvVaryingTile ) * gcolor) + texture2D(sheen, uvVaryingEffects) * ((glow * 0.5) + 0.5);
+        gl_FragColor = (tile * gcolor) + texture2D(sheen, uvVaryingEffects) * ((glow * 0.5) + 0.5);
 }
 ]]
 
@@ -223,8 +224,16 @@ function Board.new(screen, layer, args)
   local bd = {}
   bd.screen = screen
   bd.parent_layer = layer
-  bd.layer = MOAILayer.new()
-  bd.layer:setViewport(args.viewport)
+  bd.layer = MOAILayer2D.new()
+  -- bd.layer:setClearColor(0.5, 0.5, 0.5, 1.0)
+  bd.rotation = args.rotation or 0
+  bd.rotation_rad = bd.rotation * pi / 180
+  local viewport = MOAIViewport.new()
+  viewport:setSize(Settings.screen.width, Settings.screen.height)
+  viewport:setScale(Settings.screen.width, Settings.screen.height)
+  viewport:setOffset(-0.2, -0.2)
+  viewport:setRotation(bd.rotation)
+  bd.layer:setViewport(viewport)
   bd.parent_layer:insertProp(bd.layer)
   bd.color_multiplier = args.color_multiplier or 1
   bd.highlights = args.highlights or 0
@@ -304,7 +313,9 @@ function Board.new(screen, layer, args)
   bd.texture_prop = MOAIProp2D.new()
   bd.texture_prop:setDeck(Board.texture_deck)
   bd.texture_prop:setGrid(bd.texture_grid)
-  bd.texture_prop:setLoc(bd.x_offset, bd.y_offset)
+  bd.texture_prop:setLoc(0, 0)
+  bd.texture_prop:setPiv(0.5, 0.5)
+  bd.layer:setLoc(bd.x_offset, 0)
   bd.texture_prop:setGridScale(Board.shape.x / bd.size.x, Board.shape.y / bd.size.y)
 
   bd.texture_prop:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE_MINUS_SRC_ALPHA)
@@ -408,6 +419,7 @@ function Board.new(screen, layer, args)
     gem.prop = MOAIProp2D.new()
     gem.prop:setColor(1.0, 1.0, 1.0, 1.0)
     gem.prop:setPriority(1)
+    gem.prop:setRot(bd.rotation)
     local other_deck = MOAIGfxQuad2D.new()
     other_deck:setTexture(Board.gem_multitex)
     other_deck:setRect(1, -1, -1, 1, 1)
@@ -435,8 +447,6 @@ function Board.new(screen, layer, args)
     gem.locked = false
     gem.matched = {}
 
-    -- gem.sheen:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE)
-    -- gem.gloss:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE_MINUS_SRC_ALPHA)
     gem.prop:setScl(bd.gem_size)
     gem:setAlpha(1.0)
 
@@ -485,11 +495,11 @@ function Board:label_dir(dir)
 end
 
 function Board:from_screen(x, y)
-  x = x - self.x_offset
-  y = y - self.y_offset
-  local cx, cy = self.grid:locToCoord(x, y)
+  local nx, ny = self.layer:wndToWorld(self.parent_layer:worldToWnd(x, y))
+  -- printf("from_screen %d, %d: %d, %d", x, y, nx, ny)
+  local cx, cy = self.grid:locToCoord(nx, ny)
   local sx, sy = self:to_screen(cx, cy)
-  -- printf("grid:locToCoord(%d, %d) => %s, %s (center %s, %s)", x, y, tostring(cx), tostring(cy), tostring(sx), tostring(sy))
+  -- printf("grid:locToCoord(%d, %d) => %s, %s (center %s, %s)", nx, ny, tostring(cx), tostring(cy), tostring(sx), tostring(sy))
   if self.c[cx] then
     local hex = self.c[cx][cy]
     if hex then
@@ -501,7 +511,9 @@ end
 
 function Board:to_screen(x, y)
   local sx, sy = self.grid:getTileLoc(x, y, MOAIGridSpace.TILE_CENTER)
-  return sx + self.x_offset, sy + self.y_offset
+  local nx, ny = self.parent_layer:wndToWorld(self.layer:worldToWnd(sx, sy))
+  -- printf("to_screen(%d, %d): %d, %d => %d, %d", x, y, sx, sy, nx, ny)
+  return nx, ny
 end
 
 function Board:iterate(func, ...)
@@ -665,7 +677,7 @@ function Board:skyfall(color)
 	  hex.gem = nil
 	  prevhex.gem = gem
 	  printf("%d,%d falling to previous hex", idx, subidx)
-          action = gem:seekLoc(gem.hex.sx, gem.hex.sy, 0.2, MOAIEaseType.LINEAR)
+          action = gem:seekLoc(gem.hex.sx, gem.hex.sy, 0.15, MOAIEaseType.LINEAR)
         end
         prevhex = hex
       end
@@ -680,7 +692,7 @@ function Board:skyfall(color)
 	newgem:pulse(false)
 	prevhex.gem = newgem
 	printf("gem initialized...")
-	action = newgem:seekLoc(newgem.hex.sx, newgem.hex.sy, 0.2, MOAIEaseType.LINEAR)
+	action = newgem:seekLoc(newgem.hex.sx, newgem.hex.sy, 0.15, MOAIEaseType.LINEAR)
 	printf("gem asked to seek its location (%s)", tostring(action))
       end
     end

@@ -52,7 +52,7 @@ local board
 
 local function setup()
   lines = {}
-  board = Board.new(Settings.screen, layer, { texture = 1, color_multiplier = 1, rows = 7, columns = 7, size = { x = 64 }, viewport = viewport })
+  board = Board.new(Settings.screen, layer, { texture = 1, color_multiplier = 1, rows = 7, columns = 7, size = { x = 64 }, rotation = 30 })
 end
 
 local sim_cycles = 0
@@ -141,6 +141,8 @@ local function input_handler(events)
       if hex then
         local gem = hex.gem
 	this_hex = hex
+	local nx, ny = board:to_screen(hex.x, hex.y)
+	printf("hex: from_screen(%d, %d), coords %d, %d, to_screen(%d, %d)", e.x, e.y, hex.x, hex.y, nx, ny)
 	effective_drag_start = { x = e.start_x, y = e.start_y }
 	if gem then
 	  this_gem = gem
@@ -153,7 +155,7 @@ local function input_handler(events)
 	dx = e.x - effective_drag_start.x
 	dy = e.y - effective_drag_start.y
 	if dx ~=0 or dy ~= 0 then
-	  local angle = atan2(dx, dy)
+	  local angle = atan2(dx, dy) - board.rotation_rad
 	  if angle < 0 then
 	    angle = angle + (pi * 2)
 	  end
@@ -234,6 +236,7 @@ local function input_handler(events)
 	other_gem = nil
 	other_hex = nil
 	accepting_input = false
+	-- printf("released button, but not checking for matches")
 	next_action = handle_matches
       end
     end
