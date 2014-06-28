@@ -250,7 +250,7 @@ function Board.new(screen, layer, args)
   bd.size = { x = args.size and args.size.x or (bd.screen.width / (bd.columns + 1)) }
   bd.size.y = args.size and args.size.y or ((bd.size.x * Board.shape.y) / (Board.shape.x))
   -- 128px gems were intended to fit within 112px hexes, so they were about 100px originally.
-  bd.gem_size = bd.size.x * (100 / 128)
+  bd.gem_size = bd.size.x * (110 / 128)
   bd.rows = args.rows or floor(((bd.screen.height * 4) / (bd.size.y * 3)) - 0.5)
   -- shared pulse value for the whole board
   bd.pulse_pos = MOAIAnimCurve.new()
