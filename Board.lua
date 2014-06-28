@@ -16,6 +16,12 @@ local tremove = table.remove
 local rawset = rawset
 local rawget = rawget
 
+Board.font = MOAIFont.new()
+Board.font:load("verdana.ttf")
+Board.text_style = MOAITextStyle.new()
+Board.text_style:setFont(Board.font)
+Board.text_style:setSize(16)
+
 Board.texture_deck = MOAITileDeck2D.new()
 Board.texture_deck:setTexture("texture.png")
 Board.texture_deck:setSize(2, 3,
@@ -105,6 +111,11 @@ local gemberhash = {
       self.glow_anim = self.shader:seekAttr(2, 0, 0.15)
     end
   end,
+  setIndex = function(self, idx)
+    self.index = idx
+    self.prop:setIndex(idx)
+    self:setColor(self.board.color(self.index))
+  end,
   setColor = function(self, r, g, b)
     self._r = r or 1.0
     self._g = g or r
@@ -117,14 +128,20 @@ local gemberhash = {
       self.loc_anim:stop()
     end
     self.loc_anim = self.prop:seekLoc(x + self.hex.parent.x_offset, y + self.hex.parent.y_offset, ...)
+    return self.loc_anim
   end,
   setLoc = function(self, x, y)
     self.prop:setLoc(x + self.hex.parent.x_offset, y + self.hex.parent.y_offset)
+  end,
+  pickup = function(self)
+    self:pulse(true)
+    self.prop:setPriority(3)
   end,
   drop = function(self)
     self:seekLoc(self.hex.sx, self.hex.sy, 0.15)
     self:setAlpha(1.0)
     self:pulse(false)
+    self.prop:setPriority(1)
   end
 }
 
@@ -205,7 +222,10 @@ function Board.new(screen, layer, args)
   args = args or {}
   local bd = {}
   bd.screen = screen
-  bd.layer = layer
+  bd.parent_layer = layer
+  bd.layer = MOAILayer.new()
+  bd.layer:setViewport(args.viewport)
+  bd.parent_layer:insertProp(bd.layer)
   bd.color_multiplier = args.color_multiplier or 1
   bd.highlights = args.highlights or 0
   bd.color_funcs = Rainbow.funcs_for(bd.color_multiplier)
@@ -281,6 +301,16 @@ function Board.new(screen, layer, args)
   bd.grid:fill(0)
   bd.texture_grid:fill(0)
 
+  bd.texture_prop = MOAIProp2D.new()
+  bd.texture_prop:setDeck(Board.texture_deck)
+  bd.texture_prop:setGrid(bd.texture_grid)
+  bd.texture_prop:setLoc(bd.x_offset, bd.y_offset)
+  bd.texture_prop:setGridScale(Board.shape.x / bd.size.x, Board.shape.y / bd.size.y)
+
+  bd.texture_prop:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE_MINUS_SRC_ALPHA)
+
+  bd.layer:insertProp(bd.texture_prop)
+
   for x = 1, bd.columns do
     bd.c[x] = {}
     for y = 1, bd.rows do
@@ -314,14 +344,27 @@ function Board.new(screen, layer, args)
     local range = 6 - abs(i)
     for j = base, base + range do
       subidx[#subidx + 1] = j
-      bd.b[i][j] = bd.c[i + 4][j + 4]
+      local hex = bd.c[i + 4][j + 4]
+      bd.b[i][j] = hex
       if bd.b[i][j] then
-	bd.b[i][j].location = { x = i, y = j }
-	bd.b[i][j].grid_location = { x = i + 4, y = j + 4 }
+	hex.grids = {}
+	hex.location = { x = i, y = j }
+	hex.grids.nw = hex.location
+	hex.grid_location = { x = i + 4, y = j + 4 }
         bd.hex_count = bd.hex_count + 1
-	hex_locations[#hex_locations + 1] = { x = i, y = j, hex = bd.b[i][j] }
-        bd.b[i][j].tile = 1
-        bd.b[i][j].ttile = 1
+	hex_locations[#hex_locations + 1] = { x = i, y = j, hex = hex }
+        hex.tile = 1
+        hex.ttile = 1
+	hex.textbox = MOAITextBox.new()
+	hex.textbox:setAttrLink(MOAITransform.INHERIT_LOC, bd.texture_prop, MOAIProp2D.TRANSFORM_TRAIT)
+	hex.textbox:setLoc(hex.sx, hex.sy)
+	hex.textbox:setStyle(Board.text_style)
+	hex.textbox:setRect(-60, -60, 60, 60)
+	hex.textbox:setYFlip(true)
+	hex.textbox:setAlignment(MOAITextBox.CENTER_JUSTIFY, MOAITextBox.CENTER_JUSTIFY)
+	hex.textbox:setString("")
+	bd.layer:insertProp(hex.textbox)
+	hex.textbox:setPriority(2)
         -- bd.b[i][j].ttile = ((i + j) % 6) + 1
         -- bd.b[i][j].color = j + 4
       end
@@ -337,6 +380,8 @@ function Board.new(screen, layer, args)
     local point = { x = bd.b[offsets.x][offsets.y].sx, y = bd.b[offsets.x][offsets.y].sy }
     local dx = point.x - center.x
     local dy = point.y - center.y
+    offsets.dx = dx
+    offsets.dy = dy
     local angle = atan2(dx, dy)
     angle = (angle < 0) and (angle + (pi * 2)) or angle
     offsets.angle = angle
@@ -345,24 +390,6 @@ function Board.new(screen, layer, args)
       -- dir, dx, dy, offsets.angle * 180 / pi, offsets.dist)
   end
 
-  -- drawing primitives
-  -- bd.board_prop = MOAIProp2D.new()
-  -- bd.board_prop:setDeck(Board.board_deck)
-  -- bd.board_prop:setGrid(bd.grid)
-  -- bd.board_prop:setLoc(bd.x_offset, bd.y_offset)
-  -- bd.board_prop:setGridScale(Board.shape.x / bd.size.x, Board.shape.y / bd.size.y)
-
-  bd.texture_prop = MOAIProp2D.new()
-  bd.texture_prop:setDeck(Board.texture_deck)
-  bd.texture_prop:setGrid(bd.texture_grid)
-  bd.texture_prop:setLoc(bd.x_offset, bd.y_offset)
-  bd.texture_prop:setGridScale(Board.shape.x / bd.size.x, Board.shape.y / bd.size.y)
-
-  bd.texture_prop:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE_MINUS_SRC_ALPHA)
-  -- bd.board_prop:setBlendMode(MOAIProp2D.GL_DST_COLOR, MOAIProp2D.GL_ONE)
-
-  bd.layer:insertProp(bd.texture_prop)
-  -- bd.layer:insertProp(bd.board_prop)
 
   setmetatable(bd, { __index = Board.funcs })
 
@@ -380,6 +407,7 @@ function Board.new(screen, layer, args)
     gem.board = bd
     gem.prop = MOAIProp2D.new()
     gem.prop:setColor(1.0, 1.0, 1.0, 1.0)
+    gem.prop:setPriority(1)
     local other_deck = MOAIGfxQuad2D.new()
     other_deck:setTexture(Board.gem_multitex)
     other_deck:setRect(1, -1, -1, 1, 1)
@@ -401,8 +429,7 @@ function Board.new(screen, layer, args)
     shader:load(Board.vsh, Board.fsh)
     gem.shader = shader
     gem.prop:setShader(gem.shader)
-    gem.index = math.random(6)
-    gem.prop:setIndex(gem.index)
+    gem:setIndex(math.random(6))
     -- for marking matches and falling
     gem.visited = false
     gem.locked = false
@@ -411,8 +438,6 @@ function Board.new(screen, layer, args)
     -- gem.sheen:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE)
     -- gem.gloss:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE_MINUS_SRC_ALPHA)
     gem.prop:setScl(bd.gem_size)
-
-    gem:setColor(bd.color(gem.index))
     gem:setAlpha(1.0)
 
     bd.layer:insertProp(gem.prop)
@@ -420,7 +445,43 @@ function Board.new(screen, layer, args)
     gem:setLoc(gem.hex.sx, gem.hex.sy)
   end
 
+  local dir_order = { "w", "sw", "se", "e", "ne" }
+
+  -- make it possible to iterate the board as a series of lines in a
+  -- given direction
+  bd.dirs = { nw = bd.b }
+  local prev = bd.dirs.nw
+  for i = 1, #dir_order do
+    local dir = dir_order[i]
+    local tab = {}
+    bd.dirs[dir] = tab
+    -- fill in tab from prev
+    for x = 1, #bd.idx do
+      x = bd.idx[x]
+      tab[x] = {}
+      for y = 1, #bd.subidx[x] do
+	yprime = bd.subidx[x][#bd.subidx[x] - y + 1]
+        y = bd.subidx[x][y]
+	local hex = prev[yprime][x]
+	tab[x][y] = hex
+	hex.grids[dir] = { x = x, y = y }
+      end
+    end
+    prev = tab
+  end
+
   return bd
+end
+
+function Board:label_dir(dir)
+  self:iterate(function(hex, gem)
+	  hex.textbox:setString(sprintf("e%d,%d\n%s%d,%d",
+		hex.grids.e.x,
+		hex.grids.e.y,
+		dir,
+		hex.grids[dir].x,
+		hex.grids[dir].y))
+  end)
 end
 
 function Board:from_screen(x, y)
@@ -508,10 +569,12 @@ function Board:find_and_process_matches()
     local this_color = {}
     local matches_to_clear
     local found_any = false
-    while not found_any and count < 10 do
+    local inner_count = 0
+    while not found_any and inner_count < 6 do
       for i = #self.matches, 1, -1 do
         if self.matches[i].color == self.active_match_color then
 	  found_any = true
+	  printf("found match: color %d (direction %s)", self.active_match_color, direction_idx[self.active_match_color])
           local match = tremove(self.matches, i)
 	  -- wait a little before processing another match
 	  if action then
@@ -521,19 +584,22 @@ function Board:find_and_process_matches()
 	    printf("blocking on a timer")
 	    MOAICoroutine.blockOnAction(slight_delay)
 	  end
-	  action = self:clear_match(match)
+	  action = self:clear_match(match) or action
         end
       end
-      count = count + 1
-      self.active_match_color = (self.active_match_color % 6) + 1
+      inner_count = inner_count + 1
+      if not found_any then
+        self.active_match_color = (self.active_match_color % 6) + 1
+      end
     end
     if action then
       printf("blocking on an action")
       MOAICoroutine.blockOnAction(action)
     end
-    printf("starting skyfall")
+    printf("starting skyfall, color %d (dir %s)", self.active_match_color, direction_idx[self.active_match_color])
     self:skyfall(self.active_match_color)
     self:find_matches()
+    self.active_match_color = (self.active_match_color % 6) + 1
     count = count + 1
   end
 end
@@ -551,35 +617,78 @@ function Board:clear_match(match)
   for i = 1, #match.gems do
     local gem = match.gems[i]
     local hex = gem.hex
-    self.gempool[#self.gempool + 1] = gem
-    -- break the connection between them
-    gem.hex = nil
-    hex.gem = nil
-    if gem.glow_anim then
-      gem.glow_anim:stop()
+    -- if this gem was in a match we already did, ignore it.
+    if hex and hex.gem == gem then
+      self.gempool[#self.gempool + 1] = gem
+      -- break the connection between them
+      gem.hex = nil
+      hex.gem = nil
+      if gem.glow_anim then
+        gem.glow_anim:stop()
+      end
+      gem.glow_anim = gem.shader:seekAttr(2, 0.5, 0.2)
+      if gem.shrink_anim then
+        gem.shrink_anim:stop()
+      end
+      gem.shrink_anim = gem.prop:seekScl(0.1, 0.1, 0.2)
+      action = gem.shrink_anim
     end
-    gem.glow_anim = gem.shader:seekAttr(2, 0.5, 0.2)
-    if gem.shrink_anim then
-      gem.shrink_anim:stop()
-    end
-    gem.shrink_anim = gem.prop:seekScl(0.1, 0.1, 0.2)
-    action = gem.shrink_anim
   end
   return action
 end
 
 function Board:skyfall(color)
-  local falling = direction_idx[color] or 'e'
-  local from = directions[falling].opposite
-  local missing = {}
-  local missing_names = {}
-  self:iterate(function(hex, gem) if not gem then missing[#missing + 1] = hex end end)
-  for i = 1, #missing do
-    local hex = missing[i]
-    missing_names[i] = sprintf("%d,%d", hex.location.x, hex.location.y)
+  local dir = direction_idx[color] or 'e'
+  local any_missing = true
+  local action = nil
+  printf("skyfall, direction %s", dir)
+  -- self:label_dir(dir)
+
+  while any_missing do
+    any_missing = false
+    for i = 1, #self.idx do
+      local falling = false
+      local idx = self.idx[i]
+      local prevhex = nil
+      local missing_row = 0
+      for j = 1, #self.subidx[idx] do
+        local subidx = self.subidx[idx][j]
+        local hex = self.dirs[dir][idx][subidx]
+        local gem = hex and hex.gem
+        if not hex.gem then
+	  printf("%d,%d missing, things will fall", idx, subidx)
+	  any_missing = true
+          falling = true
+	  missing_row = missing_row + 1
+        elseif falling then
+          gem.hex = prevhex
+	  hex.gem = nil
+	  prevhex.gem = gem
+	  printf("%d,%d falling to previous hex", idx, subidx)
+          action = gem:seekLoc(gem.hex.sx, gem.hex.sy, 0.2, MOAIEaseType.LINEAR)
+        end
+        prevhex = hex
+      end
+      if falling then
+	printf("adding a new gem for row %d (%d missing), dir %s, dx/dy %d/%d", idx, missing_row, dir, directions[dir].dx, directions[dir].dy)
+        local newgem = table.remove(self.gempool)
+	newgem:setIndex(math.random(6))
+	newgem.hex = prevhex
+	newgem:setLoc(newgem.hex.sx + directions[dir].dx, newgem.hex.sy + directions[dir].dy)
+	newgem.prop:setScl(self.gem_size)
+	newgem.prop:setVisible(true)
+	newgem:pulse(false)
+	prevhex.gem = newgem
+	printf("gem initialized...")
+	action = newgem:seekLoc(newgem.hex.sx, newgem.hex.sy, 0.2, MOAIEaseType.LINEAR)
+	printf("gem asked to seek its location (%s)", tostring(action))
+      end
+    end
+    if action then
+      printf("delaying")
+      MOAICoroutine.blockOnAction(action)
+    end
   end
-  printf("Missing gems: %s", table.concat(missing_names, "; "))
-  -- do something clever
 end
 
 Board.funcs = {
@@ -590,6 +699,7 @@ Board.funcs = {
   match_one_gem = Board.match_one_gem,
   match_gem_direction = Board.match_gem_direction,
   iterate = Board.iterate,
+  label_dir = Board.label_dir,
   clear_match = Board.clear_match,
   skyfall = Board.skyfall
 }

@@ -52,7 +52,7 @@ local board
 
 local function setup()
   lines = {}
-  board = Board.new(Settings.screen, layer, { texture = 1, color_multiplier = 1, rows = 7, columns = 7, size = { x = 64 } })
+  board = Board.new(Settings.screen, layer, { texture = 1, color_multiplier = 1, rows = 7, columns = 7, size = { x = 64 }, viewport = viewport })
 end
 
 local sim_cycles = 0
@@ -111,17 +111,17 @@ local effective_drag_start = nil
 local accepting_input = false
 local next_action = nil
 
+local function resume_input()
+  printf("resume_input: returning nil")
+  accepting_input = true
+  return nil
+end
+
 local function handle_matches()
   printf("handle_matches")
   board:find_and_process_matches()
   printf("returning resume_input")
   return resume_input
-end
-
-local function resume_input()
-  printf("resume_input: returning nil")
-  accepting_input = true
-  return nil
 end
 
 -- for now, only handle events[1]
@@ -144,7 +144,7 @@ local function input_handler(events)
 	effective_drag_start = { x = e.start_x, y = e.start_y }
 	if gem then
 	  this_gem = gem
-	  this_gem:pulse(true)
+	  this_gem:pickup()
 	end
       end
     elseif e.state == 'drag' then
