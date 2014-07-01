@@ -1,59 +1,19 @@
 local Rainbow = {}
 
-Rainbow.manyhues = {
-  rainbow = {
-    { 255, 0, 0 },
-    { 240, 90, 0 },
-    { 220, 220, 0 },
-    { 0, 200, 0 },
-    { 0, 0, 255 },
-    { 180, 0, 200 },
-    blend = 'add',
-  },
-  pastel = {
-    { 255, 128, 128 },
-    { 255, 150, 128 },
-    { 240, 240, 108 },
-    { 128, 200, 128 },
-    { 128, 128, 255 },
-    { 200, 128, 220 },
-    blend = 'normal',
-  },
-  ocean = {
-    { 0, 0, 255 },
-    { 40, 80, 255 },
-    { 0, 180, 40 },
-    { 0, 200, 200 },
-    { 0, 180, 255 },
-    { 140, 0, 240 },
-    blend = 'add'
-  },
-  earth = {
-    { 70, 100, 40 },
-    { 220, 160, 45 },
-    { 130, 90, 40 },
-    { 100, 50, 30 },
-    { 210, 110, 0 },
-    { 150, 60, 30 },
-    blend = 'normal'
-  },
+Rainbow.data = {
+  { rgb = { 255, 0, 0 }, name = 'red' },
+  { rgb = { 240, 90, 0 }, name = 'orange' },
+  { rgb = { 220, 220, 0 }, name = 'yellow' },
+  { rgb = { 0, 200, 0 }, name = 'green' },
+  { rgb = { 0, 0, 255 }, name = 'blue' },
+  { rgb = { 180, 0, 200 }, name = 'purple' },
 }
 
-Rainbow.names = {
-  rainbow = "Rainbow", ocean = "Ocean", pastel = "Pastel", earth = "Earth",
-}
+Rainbow.hues = {}
 
-function Rainbow.list()
-  local names = {}
-  for name, count in pairs(Rainbow.names) do
-    names[#names + 1] = name
-  end
-  table.sort(names)
-  return names, Rainbow.names
+for i = 1, #Rainbow.data do
+  Rainbow.hues[i] = Rainbow.data[i].rgb
 end
-
-Rainbow.hues = Rainbow.manyhues.rainbow
-Rainbow.current_palette = "rainbow"
 
 Rainbow.smoothed = {}
 Rainbow.funcs = {}
@@ -119,10 +79,6 @@ function Rainbow.funcs_for(denominator)
   return Rainbow.funcs[denominator]
 end
 
-function Rainbow.blending()
-  return Rainbow.hues.blend or 'add'
-end
-
 function Rainbow.smoothify(denominator)
   local tab = Rainbow.smoothed[denominator] or {}
   if denominator == 1 then
@@ -154,20 +110,6 @@ function Rainbow.smoothify(denominator)
     end
   end
   Rainbow.smoothed[denominator] = tab
-end
-
-function Rainbow.change_palette(palette)
-  if Rainbow.manyhues[palette] then
-    Rainbow.hues = Rainbow.manyhues[palette]
-    Rainbow.current_palette = palette
-    for idx, tab in pairs(Rainbow.smoothed) do
-      Rainbow.smoothify(idx)
-    end
-    -- force regeneration of functions
-    Rainbow.funcs = {}
-  else
-    Util.printf("unknown palette choice: %s", tostring(palette))
-  end
 end
 
 function Rainbow.setsmoothobj(o, hue, denominator)
@@ -222,6 +164,15 @@ end
 
 function Rainbow.color(idx)
   return Rainbow.hues[((idx - 1) % #Rainbow.hues) + 1]
+end
+
+function Rainbow.value(idx, name)
+  local t = Rainbow.data[((idx - 1) % #Rainbow.data) + 1]
+  return t and t[name]
+end
+
+function Rainbow.name(idx)
+  return Rainbow.value(idx, 'name')
 end
 
 function Rainbow.colors(state, value)

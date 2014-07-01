@@ -20,6 +20,14 @@ end
 
 local printf = Util.printf
 
+function Util.wait(time)
+  local slight_delay = MOAITimer.new()
+  slight_delay:setSpan(time or 0.1)
+  slight_delay:start()
+  -- printf("blocking on a timer")
+  MOAICoroutine.blockOnAction(slight_delay)
+end
+
 function Util.dump(obj, name, prefix, seen)
   seen = seen or {}
   name = name or 'object'

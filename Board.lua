@@ -17,10 +17,10 @@ local rawset = rawset
 local rawget = rawget
 
 Board.font = MOAIFont.new()
-Board.font:load("verdana.ttf")
+Board.font:load("arial-rounded.TTF")
 Board.text_style = MOAITextStyle.new()
 Board.text_style:setFont(Board.font)
-Board.text_style:setSize(16)
+Board.text_style:setSize(18)
 
 Board.texture_deck = MOAITileDeck2D.new()
 Board.texture_deck:setTexture("texture.png")
@@ -142,7 +142,7 @@ local gemberhash = {
   end,
   pickup = function(self)
     self:pulse(true)
-    self.prop:setPriority(3)
+    self.prop:setPriority(20)
   end,
   drop = function(self)
     self:seekLoc(self.hex.sx, self.hex.sy, 0.15)
@@ -218,11 +218,71 @@ void main() {
 	vec4 gtext = texture2D(gloss, uvVaryingEffects);
 	vec4 tile = texture2D(rune, uvVaryingTile);
 	// vec4 fakeColor = vec4(1.0, 1.0, 1.0, 1.0);
-	float gscale = (1.0 - (gtext.a * 1.0 - glow));
+	float gscale = (1.0 - (gtext.a * (1.0 - glow)));
 	vec4 gcolor = vec4(color.r * gscale, color.g * gscale, color.b * gscale, color.a);
         gl_FragColor = (tile * gcolor) + texture2D(sheen, uvVaryingEffects) * ((glow * 0.5) + 0.5);
 }
 ]]
+
+Board.text_fsh = [[
+// Copyright (c) 2010-2011 Zipline Games, Inc. All Rights Reserved.
+// http://getmoai.com
+
+varying LOWP vec4 colorVarying;
+varying MEDP vec2 uvVarying;
+varying MEDP vec2 uvVaryingA;
+varying MEDP vec2 uvVaryingB;
+varying MEDP vec2 uvVaryingC;
+varying MEDP vec2 uvVaryingD;
+
+uniform sampler2D sampler;
+
+void main() { 
+	vec4 sample = texture2D(sampler, uvVarying);
+	vec4 black1 = texture2D(sampler, uvVaryingA);
+	vec4 black2 = texture2D(sampler, uvVaryingB);
+	vec4 black3 = texture2D(sampler, uvVaryingC);
+	vec4 black4 = texture2D(sampler, uvVaryingD);
+	float black = min(min(black1.a, black2.a), min(black3.a, black4.a));
+	// float black = 1.0;
+	vec4 color = colorVarying;
+	color = vec4(color.r * sample.a * black, color.g * sample.a * black, color.b * sample.a * black, sample.a);
+	gl_FragColor = color;
+}
+]]
+Board.text_vsh = [[
+// Copyright (c) 2010-2011 Zipline Games, Inc. All Rights Reserved.
+// http://getmoai.com
+
+attribute vec4 position;
+attribute vec2 uv;
+attribute vec4 color;
+
+varying vec4 colorVarying;
+varying vec2 uvVarying;
+varying vec2 uvVaryingA;
+varying vec2 uvVaryingB;
+varying vec2 uvVaryingC;
+varying vec2 uvVaryingD;
+
+void main () {
+    gl_Position = position; 
+    uvVarying = uv;
+    uvVaryingA = uv + vec2(0.0007, 0.0);
+    uvVaryingB = uv + vec2(0.0, 0.0007);
+    uvVaryingC = uv + vec2(0.0, -0.0007);
+    uvVaryingD = uv + vec2(-0.0007, 0.0);
+    colorVarying = color;
+}
+]]
+
+Board.text_shader = MOAIShader.new()
+Board.text_shader:load(Board.text_vsh, Board.text_fsh)
+Board.text_shader:reserveUniforms ( 1 )
+Board.text_shader:declareUniformSampler ( 1, 'sampler', 1)
+Board.text_shader:setVertexAttribute ( 1, 'position' )
+Board.text_shader:setVertexAttribute ( 2, 'uv' )
+Board.text_shader:setVertexAttribute ( 3, 'color' )
 
 Board.funcs = {}
 
@@ -232,13 +292,13 @@ function Board.new(screen, layer, args)
   bd.screen = screen
   bd.parent_layer = layer
   bd.layer = MOAILayer2D.new()
-  -- bd.layer:setClearColor(0.5, 0.5, 0.5, 1.0)
+  bd.layer:setClearColor(0.1, 0.1, 0.1, 1.0)
   bd.rotation = args.rotation or 0
   bd.rotation_rad = bd.rotation * pi / 180
   local viewport = MOAIViewport.new()
   viewport:setSize(Settings.screen.width, Settings.screen.height)
   viewport:setScale(Settings.screen.width, Settings.screen.height)
-  viewport:setOffset(-0.2, -0.2)
+  viewport:setOffset(-0.5, -0.6)
   viewport:setRotation(bd.rotation)
   bd.layer:setViewport(viewport)
   bd.parent_layer:insertProp(bd.layer)
@@ -320,12 +380,41 @@ function Board.new(screen, layer, args)
   bd.texture_prop = MOAIProp2D.new()
   bd.texture_prop:setDeck(Board.texture_deck)
   bd.texture_prop:setGrid(bd.texture_grid)
-  bd.texture_prop:setLoc(0, 0)
   bd.texture_prop:setPiv(0.5, 0.5)
-  bd.layer:setLoc(bd.x_offset, 0)
+  bd.texture_prop:setLoc(0, 0)
+  bd.layer:setLoc(0, 0)
   bd.texture_prop:setGridScale(Board.shape.x / bd.size.x, Board.shape.y / bd.size.y)
 
   bd.texture_prop:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE_MINUS_SRC_ALPHA)
+
+  bd.border_prop = MOAIProp2D.new()
+  bd.border_quad = MOAIGfxQuad2D.new()
+  bd.border_texture = MOAITexture.new()
+  bd.border_texture:load("border.png")
+  bd.border_quad:setTexture(bd.border_texture)
+  bd.border_prop:setDeck(bd.border_quad)
+  bd.border_prop:setPriority(10)
+  bd.layer:insertProp(bd.border_prop)
+  local border_offset = { x = -24 - bd.x_offset, y = 26 - bd.y_offset }
+  bd.border_quad:setRect(-512 + border_offset.x, -512 + border_offset.y, 512 + border_offset.x, 512 + border_offset.y)
+  bd.combo_meters = {}
+  for i = 1, 6 do
+    bd.combo_meters[i] = MOAITextBox.new()
+    local style = MOAITextStyle.new()
+    style:setFont(Board.font)
+    style:setSize(22)
+    style:setColor(bd.color(i))
+    bd.combo_meters[i]:setStyle(style)
+    bd.combo_meters[i]:setRect(0, 0, 140, 26)
+    -- bd.combo_meters[i]:setString(sprintf("Meter %d", i))
+    bd.combo_meters[i]:setString("Match: ")
+    bd.combo_meters[i]:setPriority(11)
+    bd.combo_meters[i]:setAlignment(MOAITextBox.LEFT_JUSTIFY, MOAITextBox.CENTER_JUSTIFY)
+    bd.combo_meters[i]:setLoc(-185, 600 - (20 * i))
+    bd.combo_meters[i]:setYFlip(true)
+    -- bd.combo_meters[i]:setShader(Board.text_shader)
+    bd.layer:insertProp(bd.combo_meters[i])
+  end
 
   bd.layer:insertProp(bd.texture_prop)
 
@@ -564,7 +653,7 @@ function Board:match_gem_direction(gem, dir)
       gems[i].match = match
       diag[#diag + 1] = sprintf("%d, %d", gems[i].hex.location.x, gems[i].hex.location.y)
     end
-    printf("Found a match: color %d, gems %s.", gem.index, table.concat(diag, "; "))
+    -- printf("Found a match: color %d, gems %s.", gem.index, table.concat(diag, "; "))
   end
 end
 
@@ -572,7 +661,7 @@ function Board:match_one_gem(gem)
   if not gem or not gem.hex then
     return
   end
-  local dirs = { 'e', 'ne', 'se' }
+  local dirs = { "nw", "ne", "e" }
   for i = 1, #dirs do
     local dir = dirs[i]
     if not gem.matched[dir] then
@@ -586,6 +675,12 @@ function Board:find_and_process_matches()
   self:find_matches()
   local count = 0
   local action = nil
+  self.results = {}
+  self.displayed = {}
+  -- printf("find_and_process matches starting, setting meters to empty")
+  for i = 1, 6 do
+    self.combo_meters[i]:setString("Match: ")
+  end
   while #self.matches > 0 do
     local this_color = {}
     local matches_to_clear
@@ -595,16 +690,9 @@ function Board:find_and_process_matches()
       for i = #self.matches, 1, -1 do
         if self.matches[i].color == self.active_match_color then
 	  found_any = true
-	  printf("found match: color %d (direction %s)", self.active_match_color, direction_idx[self.active_match_color])
+	  -- printf("found match: color %d (direction %s)", self.active_match_color, direction_idx[self.active_match_color])
           local match = tremove(self.matches, i)
-	  -- wait a little before processing another match
-	  if action then
-	    local slight_delay = MOAITimer.new()
-	    slight_delay:setSpan(0.1)
-	    slight_delay:start()
-	    printf("blocking on a timer")
-	    MOAICoroutine.blockOnAction(slight_delay)
-	  end
+	  Util.wait(0.1)
 	  action = self:clear_match(match) or action
         end
       end
@@ -614,10 +702,9 @@ function Board:find_and_process_matches()
       end
     end
     if action then
-      printf("blocking on an action")
-      MOAICoroutine.blockOnAction(action)
+      Util.wait(0.1)
     end
-    printf("starting skyfall, color %d (dir %s)", self.active_match_color, direction_idx[self.active_match_color])
+    -- printf("starting skyfall, color %d (dir %s)", self.active_match_color, direction_idx[self.active_match_color])
     local any_missing = self:skyfall(self.active_match_color)
     self:find_matches()
     if any_missing > 0 and #self.matches < 1 then
@@ -626,18 +713,36 @@ function Board:find_and_process_matches()
     self.active_match_color = (self.active_match_color % 6) + 1
     count = count + 1
   end
+  -- printf("finishing matches:")
+  -- Util.dump(self.displayed)
+  for i = 1, 6 do
+    self.combo_meters[i]:setString(sprintf("Match: %d", self.displayed[i] or 0))
+  end
+  if action then
+    -- printf("blocking on an action")
+    MOAICoroutine.blockOnAction(action)
+  end
+  return self.results
 end
 
 function Board:find_matches()
   self.matches = {}
-  printf("Checking for matches...")
+  -- printf("Checking for matches...")
   self:iterate(function(hex, gem) if gem then gem.visited = false; gem.locked = false; gem.matched = {} end end)
   self:iterate(function(hex, gem) if gem then self:match_one_gem(gem) end end)
 end
 
 function Board:clear_match(match)
-  printf("Clearing %d gems.", #match.gems)
+  -- printf("Clearing %d gems.", #match.gems)
   local action = nil
+  self.results[match.color] = self.results[match.color] or {}
+  self.displayed[match.color] = self.displayed[match.color] or 0
+  self.combo_meters[match.color]:setString(sprintf("Match: %d + %d", self.displayed[match.color], #match.gems))
+  self.combo_meters[match.color]:revealAll()
+  self.displayed[match.color] = self.displayed[match.color] + #match.gems
+  local tab = self.results[match.color]
+  Sound.play(match.color)
+  tab[#tab + 1] = #match.gems
   for i = 1, #match.gems do
     local gem = match.gems[i]
     local hex = gem.hex
@@ -659,6 +764,7 @@ function Board:clear_match(match)
       action = gem.shrink_anim
     end
   end
+  Util.wait(0.1)
   return action
 end
 
@@ -667,7 +773,7 @@ function Board:skyfall(color)
   local any_falling = true
   local action = nil
   local any_missing = 0
-  printf("skyfall, direction %s", dir)
+  -- printf("skyfall, direction %s", dir)
   -- self:label_dir(dir)
 
   while any_falling do
@@ -719,6 +825,7 @@ function Board:skyfall(color)
       MOAICoroutine.blockOnAction(action)
     end
   end
+  self.combo_meters[color]:setString(sprintf("Match: %d", self.displayed[color] or 0))
   return any_missing
 end
 

@@ -6,6 +6,8 @@ Rainbow = require('Rainbow')
 Sound = require('Sound')
 
 Board = require('Board')
+Element = require('Element')
+Trope = require('Trope')
 
 local Rainbow = Rainbow
 local Settings = Settings
@@ -52,7 +54,8 @@ local board
 
 local function setup()
   lines = {}
-  board = Board.new(Settings.screen, layer, { texture = 1, color_multiplier = 1, rows = 7, columns = 7, size = { x = 64 }, rotation = 30 })
+  local approx_size = Settings.screen.width / 8
+  board = Board.new(Settings.screen, layer, { texture = 1, color_multiplier = 1, rows = 7, columns = 7, size = { x = approx_size }, rotation = 0 })
 end
 
 local sim_cycles = 0
@@ -112,17 +115,25 @@ local accepting_input = false
 local next_action = nil
 
 local function resume_input()
-  printf("resume_input: returning nil")
   accepting_input = true
   return nil
 end
 
 local function handle_matches()
-  printf("handle_matches")
-  board:find_and_process_matches()
-  printf("returning resume_input")
+  -- printf("handle_matches")
+  local results = board:find_and_process_matches()
+  if false then
+    for i = 1, 6 do
+      if results[i] then
+        printf("Color %d: %s", i, table.concat(results[i], ", "))
+      end
+    end
+    printf("returning resume_input")
+  end
   return resume_input
 end
+
+local gem_swap_sound_toggle = false
 
 -- for now, only handle events[1]
 local function input_handler(events)
@@ -142,7 +153,7 @@ local function input_handler(events)
         local gem = hex.gem
 	this_hex = hex
 	local nx, ny = board:to_screen(hex.x, hex.y)
-	printf("hex: from_screen(%d, %d), coords %d, %d, to_screen(%d, %d)", e.x, e.y, hex.x, hex.y, nx, ny)
+	-- printf("hex: from_screen(%d, %d), coords %d, %d, to_screen(%d, %d)", e.x, e.y, hex.x, hex.y, nx, ny)
 	effective_drag_start = { x = e.start_x, y = e.start_y }
 	if gem then
 	  this_gem = gem
@@ -212,6 +223,11 @@ local function input_handler(events)
 	      effective_drag_start = { x = nx, y = ny }
 	      other_gem:drop()
 	      other_gem = nil
+	      if gem_swap_sound_toggle then
+	        Sound.play('key')
+	      else
+	        Sound.play('space')
+	      end
 	    elseif distance_scale > 0.3 then
 	      other_gem:pulse(true)
 	    end
@@ -227,6 +243,7 @@ local function input_handler(events)
   else
     if e.state == 'release' then
       if this_gem then
+	Sound.play('return')
 	this_gem:drop()
 	if other_gem then
 	  other_gem:drop()
