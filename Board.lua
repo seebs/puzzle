@@ -286,28 +286,28 @@ Board.text_shader:setVertexAttribute ( 3, 'color' )
 
 Board.funcs = {}
 
-function Board.new(screen, layer, args)
+function Board:script_processing()
+  MOAIGfxDevice.setPenColor(1, 1, 1, 1)
+  MOAIDraw.drawLine(self.lower_left.x, self.lower_left.y,
+  	self.upper_right.x, self.lower_left.y,
+	self.upper_right.x, self.upper_right.y,
+	self.lower_left.x, self.upper_right.y,
+	self.lower_left.x, self.lower_left.y,
+	self.upper_right.x, self.upper_right.y)
+end
+
+function Board.new(scene, args)
   args = args or {}
   local bd = {}
-  bd.screen = screen
-  bd.parent_layer = layer
-  bd.layer = MOAILayer2D.new()
-  bd.layer:setClearColor(0.1, 0.1, 0.1, 1.0)
-  bd.rotation = args.rotation or 0
-  bd.rotation_rad = bd.rotation * pi / 180
-  local viewport = MOAIViewport.new()
-  viewport:setSize(Settings.screen.width, Settings.screen.height)
-  viewport:setScale(Settings.screen.width, Settings.screen.height)
-  viewport:setOffset(-0.5, -0.6)
-  viewport:setRotation(bd.rotation)
-  bd.layer:setViewport(viewport)
-  bd.parent_layer:insertProp(bd.layer)
+  bd.layer = flower.Layer()
+  bd.layer:setClearColor(0.5, 0.5, 0.5, 1.0)
+  scene:addChild(bd.layer)
   bd.color_multiplier = args.color_multiplier or 1
   bd.highlights = args.highlights or 0
   bd.color_funcs = Rainbow.funcs_for(bd.color_multiplier)
   bd.color = bd.color_funcs.smooth
   bd.columns = args.columns or 12
-  bd.size = { x = args.size and args.size.x or (bd.screen.width / (bd.columns + 1)) }
+  bd.size = { x = args.size and args.size.x or (flower.viewWidth / (bd.columns + 1)) }
   bd.size.y = args.size and args.size.y or ((bd.size.x * Board.shape.y) / (Board.shape.x))
   -- 128px gems were intended to fit within 112px hexes, so they were about 100px originally.
   bd.gem_size = bd.size.x * (110 / 128)
@@ -342,14 +342,22 @@ function Board.new(screen, layer, args)
   bd.texture_grid:initAxialHexGrid(bd.columns, bd.rows, bd.size.x, bd.size.y, 3, 3)
   rx, ry = bd.grid:getTileLoc(1, 1, MOAIGridSpace.TILE_LEFT_TOP)
   bd.lower_left = { x = rx, y = ry }
-  rx, ry = bd.grid:getTileLoc(bd.columns, bd.rows, MOAIGridSpace.TILE_RIGHT_BOTTOM)
+  rx, ry = bd.grid:getTileLoc(1, floor((bd.rows + 1) / 2), MOAIGridSpace.TILE_LEFT_TOP)
+  bd.lower_left.x = rx
   -- if we have an odd number of rows, the top row will not extend
   -- as far right as the one below it.
   if bd.rows % 2 == 1 then
     rx = rx + bd.size.x / 2
   end
+  rx, ry = bd.grid:getTileLoc(bd.columns, bd.rows, MOAIGridSpace.TILE_RIGHT_BOTTOM)
   bd.upper_right = { x = rx, y = ry }
+  rx, ry = bd.grid:getTileLoc(bd.columns, floor((bd.rows + 1) / 2), MOAIGridSpace.TILE_RIGHT_BOTTOM)
+  bd.upper_right.x = rx
   bd.grid_size = { x = bd.upper_right.x - bd.lower_left.x, y = bd.upper_right.y - bd.lower_left.y }
+  printf("grid_size:")
+  Util.dump(bd.lower_left)
+  Util.dump(bd.upper_right)
+  Util.dump(bd.grid_size)
   --[[
     the computed size of the grid should be pretty exact -- if I
     draw lines at those coordinates, they are exactly at the edges
@@ -357,8 +365,13 @@ function Board.new(screen, layer, args)
     is off-center. I think the grid itself is slightly off-center
     from its nominal location, thus the fudge factors.
     ]]--
-  bd.x_offset = (bd.screen.width - bd.grid_size.x) / 2 + bd.screen.left
-  bd.y_offset = (bd.screen.height - bd.grid_size.y) / 2 + bd.screen.bottom + (bd.size.y / 12)
+  bd.offsets = {
+  x = (flower.viewWidth - bd.grid_size.x) / 2 - bd.lower_left.x,
+  y = (flower.viewHeight - bd.grid_size.y) / 2 - bd.lower_left.y + (bd.size.y / 12)
+  }
+  printf("screen size: %dx%d", flower.viewWidth, flower.viewHeight)
+  printf("offsets:")
+  Util.dump(bd.offsets)
 
   bd.grid:fillColor(1)
   bd.texture_grid:fillColor(1)
@@ -381,9 +394,7 @@ function Board.new(screen, layer, args)
   bd.texture_prop:setDeck(Board.texture_deck)
   bd.texture_prop:setGrid(bd.texture_grid)
   bd.texture_prop:setPiv(0.5, 0.5)
-  bd.texture_prop:setLoc(0, 0)
-  bd.layer:setLoc(0, 0)
-  bd.texture_prop:setGridScale(Board.shape.x / bd.size.x, Board.shape.y / bd.size.y)
+  bd.texture_prop:setLoc(bd.offsets.x, bd.offsets.y)
 
   bd.texture_prop:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE_MINUS_SRC_ALPHA)
 
@@ -394,9 +405,9 @@ function Board.new(screen, layer, args)
   bd.border_quad:setTexture(bd.border_texture)
   bd.border_prop:setDeck(bd.border_quad)
   bd.border_prop:setPriority(10)
-  bd.layer:insertProp(bd.border_prop)
-  local border_offset = { x = -24 - bd.x_offset, y = 26 - bd.y_offset }
-  bd.border_quad:setRect(-512 + border_offset.x, -512 + border_offset.y, 512 + border_offset.x, 512 + border_offset.y)
+  -- bd.layer:insertProp(bd.border_prop)
+  local border_offset = { x = -24 - bd.offsets.x, y = 26 - bd.offsets.y }
+  bd.border_quad:setRect(bd.lower_left.x, bd.lower_left.y, bd.upper_right.x, bd.upper_right.y)
   bd.combo_meters = {}
   for i = 1, 6 do
     bd.combo_meters[i] = MOAITextBox.new()
@@ -515,7 +526,7 @@ function Board.new(screen, layer, args)
     gem.prop = MOAIProp2D.new()
     gem.prop:setColor(1.0, 1.0, 1.0, 1.0)
     gem.prop:setPriority(1)
-    gem.prop:setRot(bd.rotation)
+    gem.prop:setAttrLink(MOAITransform.INHERIT_LOC, bd.texture_prop, MOAIProp2D.TRANSFORM_TRAIT)
     local other_deck = MOAIGfxQuad2D.new()
     other_deck:setTexture(Board.gem_multitex)
     other_deck:setRect(1, -1, -1, 1, 1)
@@ -576,6 +587,15 @@ function Board.new(screen, layer, args)
     prev = tab
   end
 
+  bd.scriptdeck = MOAIScriptDeck.new()
+  bd.scriptdeck:setRect(bd.lower_left.x, bd.lower_left.y, bd.upper_right.x, bd.upper_right.y)
+  bd.scriptdeck:setDrawCallback(function() Board.script_processing(bd) end)
+  bd.scriptprop = MOAIProp2D.new()
+  bd.scriptprop:setDeck(bd.scriptdeck)
+  bd.scriptprop:setPriority(10)
+  bd.layer:insertProp(bd.scriptprop)
+  bd.border_prop:moveRot(360, 1.5)
+
   return bd
 end
 
@@ -591,11 +611,11 @@ function Board:label_dir(dir)
 end
 
 function Board:from_screen(x, y)
-  local nx, ny = self.layer:wndToWorld(self.parent_layer:worldToWnd(x, y))
-  -- printf("from_screen %d, %d: %d, %d", x, y, nx, ny)
-  local cx, cy = self.grid:locToCoord(nx, ny)
+  local nx, ny = self.layer:wndToWorld(x, y)
+  -- printf("from_screen %d, %d: %d, %d => %d, %d", x, y, nx, ny, nx - self.offsets.x, ny - self.offsets.y)
+  local cx, cy = self.grid:locToCoord(nx - self.offsets.y, ny - self.offsets.y)
   local sx, sy = self:to_screen(cx, cy)
-  -- printf("grid:locToCoord(%d, %d) => %s, %s (center %s, %s)", nx, ny, tostring(cx), tostring(cy), tostring(sx), tostring(sy))
+  printf("grid:locToCoord(%d, %d) => %s, %s (center %s, %s)", nx, ny, tostring(cx), tostring(cy), tostring(sx), tostring(sy))
   if self.c[cx] then
     local hex = self.c[cx][cy]
     if hex then
@@ -607,8 +627,8 @@ end
 
 function Board:to_screen(x, y)
   local sx, sy = self.grid:getTileLoc(x, y, MOAIGridSpace.TILE_CENTER)
-  local nx, ny = self.parent_layer:wndToWorld(self.layer:worldToWnd(sx, sy))
-  -- printf("to_screen(%d, %d): %d, %d => %d, %d", x, y, sx, sy, nx, ny)
+  local nx, ny = self.layer:worldToWnd(sx + self.offsets.x, sy + self.offsets.y)
+  -- printf("to_screen(%d, %d): %d, %d => %d, %d => %d, %d", x, y, sx, sy, sx + self.offsets.x, sy + self.offsets.y, nx, ny)
   return nx, ny
 end
 
