@@ -114,7 +114,7 @@ input_handler = function(e)
   else
     return
   end
-  -- Util.dump(e)
+  Util.dump(e)
   if e.down then
     if e.state == 'press' then
       local hex = board:from_screen(e.x, e.y)

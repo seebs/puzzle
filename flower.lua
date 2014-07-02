@@ -12,6 +12,7 @@
 
 -- module
 local M = {}
+local printf = Util.printf
 
 -- Classes
 local table
