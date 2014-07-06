@@ -35,16 +35,27 @@ Loose ideas:
 		attack (genre)
 		defense (genre)
 		health (genre) => call "inspiration" (enemy damage "word count"?)
+		tropes (active or passive)
+
+		flagged stats:
+			protagonist
+			antagonist
+			character
+			narrator
+			support
 		protagonist traits (up to 3)
 		antagonist traits (up to 2)
-		author trait
+		author trait (?)
+	Party:
+		"cast"
+		-- elements slots with flags on them
 
 	Genres:
 		romance (heart, red)
 		fantasy (wizard's hat, orange)
 		action (explosion, yellow)
 		scifi (atom, green)
-		crime (???, blue)
+		crime (dagger blue)
 		gothic (bat, purple)
 	
 	Defense:

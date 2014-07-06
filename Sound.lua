@@ -3,7 +3,7 @@ local sprintf = Util.sprintf
 local printf = Util.printf
 local floor = math.floor
 
-local effects = { 'key', 'space', 'return' }
+local effects = { 'key', 'space', 'return', 'coin' }
 
 function Sound.init()
   if Sound.initialized then
@@ -15,7 +15,7 @@ function Sound.init()
   Sound.playback = {}
   Sound.effects = {}
   Sound.effect_playback = {}
-  for i = 1, 16 do
+  for i = 1, 6 do
     name = sprintf("sounds/breath%03d.wav", i)
     local tone = MOAIUntzSampleBuffer.new()
     tone:load(name)

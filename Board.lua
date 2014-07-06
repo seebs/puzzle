@@ -16,12 +16,6 @@ local tremove = table.remove
 local rawset = rawset
 local rawget = rawget
 
-Board.font = MOAIFont.new()
-Board.font:load("arial-rounded.TTF")
-Board.text_style = MOAITextStyle.new()
-Board.text_style:setFont(Board.font)
-Board.text_style:setSize(18)
-
 Board.texture_deck = MOAITileDeck2D.new()
 Board.texture_deck:setTexture("texture.png")
 Board.texture_deck:setSize(2, 3,
@@ -287,21 +281,46 @@ Board.text_shader:setVertexAttribute ( 3, 'color' )
 Board.funcs = {}
 
 function Board:script_processing()
+  if true then
+    return
+  end
   MOAIGfxDevice.setPenColor(1, 1, 1, 1)
-  MOAIDraw.drawLine(self.lower_left.x, self.lower_left.y,
-  	self.upper_right.x, self.lower_left.y,
-	self.upper_right.x, self.upper_right.y,
-	self.lower_left.x, self.upper_right.y,
-	self.lower_left.x, self.lower_left.y,
-	self.upper_right.x, self.upper_right.y)
+  local p0 = { x = self.lower_left_bound.x, y = self.lower_left_bound.y }
+  local p1 = { x = self.upper_right_bound.x, y = self.upper_right_bound.y }
+  p0.x = p0.x + self.offsets.x
+  p1.x = p1.x + self.offsets.x
+  p0.y = p0.y + self.offsets.y
+  p1.y = p1.y + self.offsets.y
+  MOAIDraw.drawLine(p0.x, p0.y,
+  	p1.x, p0.y,
+	p1.x, p1.y,
+	p0.x, p1.y,
+	p0.x, p0.y,
+	p1.x, p1.y)
+  p0 = { x = self.lower_left.x, y = self.lower_left.y }
+  p1 = { x = self.upper_right.x, y = self.upper_right.y }
+  p0.x = p0.x + self.offsets.x
+  p1.x = p1.x + self.offsets.x
+  p0.y = p0.y + self.offsets.y
+  p1.y = p1.y + self.offsets.y
+  MOAIGfxDevice.setPenColor(0, 1, 0, 1)
+  MOAIDraw.drawLine(p0.x, p0.y,
+  	p1.x, p0.y,
+	p1.x, p1.y,
+	p0.x, p1.y,
+	p0.x, p0.y,
+	p1.x, p1.y)
 end
 
 function Board.new(scene, args)
   args = args or {}
   local bd = {}
   bd.layer = flower.Layer()
-  bd.layer:setClearColor(0.5, 0.5, 0.5, 1.0)
+  -- bd.layer:setClearColor(0.5, 0.5, 0.5, 1.0)
   scene:addChild(bd.layer)
+  -- built around 768 as a baseline
+  bd.base_scale = (flower.viewWidth / 768)
+  printf("base scale: %.2f", bd.base_scale)
   bd.color_multiplier = args.color_multiplier or 1
   bd.highlights = args.highlights or 0
   bd.color_funcs = Rainbow.funcs_for(bd.color_multiplier)
@@ -336,27 +355,24 @@ function Board.new(scene, args)
 
   -- printf("Base size %dx%d px => %dx%d grid.", bd.size.x, bd.size.y, bd.columns, bd.rows)
   bd.grid = MOAIGridFancy.new()
-  bd.grid:initAxialHexGrid(bd.columns, bd.rows, bd.size.x, bd.size.y, 3, 3)
+  bd.grid:initAxialHexGrid(bd.columns, bd.rows, bd.size.x, bd.size.y, 2, 2)
   -- an additional grid to live in front of the other
   bd.texture_grid = MOAIGridFancy.new()
-  bd.texture_grid:initAxialHexGrid(bd.columns, bd.rows, bd.size.x, bd.size.y, 3, 3)
-  rx, ry = bd.grid:getTileLoc(1, 1, MOAIGridSpace.TILE_LEFT_TOP)
+  bd.texture_grid:initAxialHexGrid(bd.columns, bd.rows, bd.size.x, bd.size.y, 2, 2)
+  local rx, ry = bd.grid:getTileLoc(1, 1, MOAIGridSpace.TILE_LEFT_TOP)
   bd.lower_left = { x = rx, y = ry }
+  bd.lower_left_bound = { x = rx, y = ry }
   rx, ry = bd.grid:getTileLoc(1, floor((bd.rows + 1) / 2), MOAIGridSpace.TILE_LEFT_TOP)
-  bd.lower_left.x = rx
-  -- if we have an odd number of rows, the top row will not extend
-  -- as far right as the one below it.
-  if bd.rows % 2 == 1 then
-    rx = rx + bd.size.x / 2
-  end
+  bd.lower_left_bound.x = rx
   rx, ry = bd.grid:getTileLoc(bd.columns, bd.rows, MOAIGridSpace.TILE_RIGHT_BOTTOM)
   bd.upper_right = { x = rx, y = ry }
+  bd.upper_right_bound = { x = rx, y = ry }
   rx, ry = bd.grid:getTileLoc(bd.columns, floor((bd.rows + 1) / 2), MOAIGridSpace.TILE_RIGHT_BOTTOM)
-  bd.upper_right.x = rx
-  bd.grid_size = { x = bd.upper_right.x - bd.lower_left.x, y = bd.upper_right.y - bd.lower_left.y }
+  bd.upper_right_bound.x = rx
+  bd.grid_size = { x = bd.upper_right_bound.x - bd.lower_left_bound.x, y = bd.upper_right_bound.y - bd.lower_left_bound.y }
   printf("grid_size:")
-  Util.dump(bd.lower_left)
-  Util.dump(bd.upper_right)
+  Util.dump(bd.lower_left_bound)
+  Util.dump(bd.upper_right_bound)
   Util.dump(bd.grid_size)
   --[[
     the computed size of the grid should be pretty exact -- if I
@@ -366,8 +382,8 @@ function Board.new(scene, args)
     from its nominal location, thus the fudge factors.
     ]]--
   bd.offsets = {
-  x = (flower.viewWidth - bd.grid_size.x) / 2 - bd.lower_left.x,
-  y = (flower.viewHeight - bd.grid_size.y) / 2 - bd.lower_left.y + (bd.size.y / 12)
+  x = (flower.viewWidth - bd.grid_size.x) / 2 - bd.lower_left_bound.x,
+  y = (flower.viewHeight - bd.grid_size.y) / 2 - bd.lower_left_bound.y + (bd.size.y / 12)
   }
   printf("screen size: %dx%d", flower.viewWidth, flower.viewHeight)
   printf("offsets:")
@@ -393,10 +409,10 @@ function Board.new(scene, args)
   bd.texture_prop = MOAIProp2D.new()
   bd.texture_prop:setDeck(Board.texture_deck)
   bd.texture_prop:setGrid(bd.texture_grid)
-  bd.texture_prop:setPiv(0.5, 0.5)
   bd.texture_prop:setLoc(bd.offsets.x, bd.offsets.y)
 
   bd.texture_prop:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE_MINUS_SRC_ALPHA)
+  bd.layer:insertProp(bd.texture_prop)
 
   bd.border_prop = MOAIProp2D.new()
   bd.border_quad = MOAIGfxQuad2D.new()
@@ -405,29 +421,28 @@ function Board.new(scene, args)
   bd.border_quad:setTexture(bd.border_texture)
   bd.border_prop:setDeck(bd.border_quad)
   bd.border_prop:setPriority(10)
-  -- bd.layer:insertProp(bd.border_prop)
-  local border_offset = { x = -24 - bd.offsets.x, y = 26 - bd.offsets.y }
-  bd.border_quad:setRect(bd.lower_left.x, bd.lower_left.y, bd.upper_right.x, bd.upper_right.y)
+  -- bd.border_prop:setColor(0.3, 0.3, 0.3, 0.3)
+  bd.border_prop:setScl(bd.base_scale)
+  local border_size = 1024 * bd.base_scale
+  local xdiff = border_size - bd.grid_size.x
+  local ydiff = border_size - bd.grid_size.y
+  printf("border: %dpx tall, grid %dx%d, diff %dx%d", border_size, bd.grid_size.x, bd.grid_size.y, xdiff, ydiff)
+  bd.border_quad:setRect(0, 0, 1024, 1024)
+  bd.border_prop:setLoc(-(xdiff / 2) - (bd.lower_left.x - bd.lower_left_bound.x), -(ydiff / 2))
+  bd.border_prop:setAttrLink(MOAITransform.INHERIT_LOC, bd.texture_prop, MOAIProp2D.TRANSFORM_TRAIT)
+  bd.layer:insertProp(bd.border_prop)
+
   bd.combo_meters = {}
   for i = 1, 6 do
-    bd.combo_meters[i] = MOAITextBox.new()
-    local style = MOAITextStyle.new()
-    style:setFont(Board.font)
-    style:setSize(22)
-    style:setColor(bd.color(i))
-    bd.combo_meters[i]:setStyle(style)
-    bd.combo_meters[i]:setRect(0, 0, 140, 26)
-    -- bd.combo_meters[i]:setString(sprintf("Meter %d", i))
-    bd.combo_meters[i]:setString("Match: ")
+    bd.combo_meters[i] = flower.Label("Match:", 140, 30, nil, 10)
     bd.combo_meters[i]:setPriority(11)
-    bd.combo_meters[i]:setAlignment(MOAITextBox.LEFT_JUSTIFY, MOAITextBox.CENTER_JUSTIFY)
-    bd.combo_meters[i]:setLoc(-185, 600 - (20 * i))
     bd.combo_meters[i]:setYFlip(true)
-    -- bd.combo_meters[i]:setShader(Board.text_shader)
+    bd.combo_meters[i]:setColor(bd.color(i))
+    bd.combo_meters[i]:setAlignment(MOAITextBox.LEFT_JUSTIFY, MOAITextBox.CENTER_JUSTIFY)
+    bd.combo_meters[i]:setLoc(-bd.offsets.x, bd.upper_right.y - (12 * (i - 1)))
+    bd.combo_meters[i]:setAttrLink(MOAITransform.INHERIT_LOC, bd.texture_prop, MOAIProp2D.TRANSFORM_TRAIT)
     bd.layer:insertProp(bd.combo_meters[i])
   end
-
-  bd.layer:insertProp(bd.texture_prop)
 
   for x = 1, bd.columns do
     bd.c[x] = {}
@@ -588,13 +603,12 @@ function Board.new(scene, args)
   end
 
   bd.scriptdeck = MOAIScriptDeck.new()
-  bd.scriptdeck:setRect(bd.lower_left.x, bd.lower_left.y, bd.upper_right.x, bd.upper_right.y)
+  bd.scriptdeck:setRect(bd.lower_left_bound.x, bd.lower_left_bound.y, bd.upper_right_bound.x, bd.upper_right_bound.y)
   bd.scriptdeck:setDrawCallback(function() Board.script_processing(bd) end)
   bd.scriptprop = MOAIProp2D.new()
   bd.scriptprop:setDeck(bd.scriptdeck)
   bd.scriptprop:setPriority(10)
   bd.layer:insertProp(bd.scriptprop)
-  bd.border_prop:moveRot(360, 1.5)
 
   return bd
 end
@@ -611,11 +625,11 @@ function Board:label_dir(dir)
 end
 
 function Board:from_screen(x, y)
-  local nx, ny = self.layer:wndToWorld(x, y)
+  x, y = x - self.offsets.x, y - self.offsets.y
   -- printf("from_screen %d, %d: %d, %d => %d, %d", x, y, nx, ny, nx - self.offsets.x, ny - self.offsets.y)
-  local cx, cy = self.grid:locToCoord(nx - self.offsets.y, ny - self.offsets.y)
+  local cx, cy = self.grid:locToCoord(x, y)
   local sx, sy = self:to_screen(cx, cy)
-  printf("grid:locToCoord(%d, %d) => %s, %s (center %s, %s)", nx, ny, tostring(cx), tostring(cy), tostring(sx), tostring(sy))
+  -- printf("grid:locToCoord(%d, %d) => %s, %s (center %s, %s)", x, y, tostring(cx), tostring(cy), tostring(sx), tostring(sy))
   if self.c[cx] then
     local hex = self.c[cx][cy]
     if hex then
@@ -627,7 +641,7 @@ end
 
 function Board:to_screen(x, y)
   local sx, sy = self.grid:getTileLoc(x, y, MOAIGridSpace.TILE_CENTER)
-  local nx, ny = self.layer:worldToWnd(sx + self.offsets.x, sy + self.offsets.y)
+  local nx, ny = sx + self.offsets.x, sy + self.offsets.y
   -- printf("to_screen(%d, %d): %d, %d => %d, %d => %d, %d", x, y, sx, sy, sx + self.offsets.x, sy + self.offsets.y, nx, ny)
   return nx, ny
 end

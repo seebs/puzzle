@@ -63,6 +63,7 @@ function Input.mouse_left_handler(down)
 end
 
 function Input.pointer_handler(x, y)
+  printf("pointer_handler: %d, %d", x, y)
   if Input.layer then
     local nx, ny = Input.layer:wndToWorld(x, y)
     x, y = nx, ny

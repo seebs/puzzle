@@ -11,8 +11,10 @@ Rainbow = require 'Rainbow'
 Sound = require 'Sound'
 
 Board = require 'Board'
-Element = require 'Element'
+Genre = require 'Genre'
 Trope = require 'Trope'
+Element = require 'Element'
+Formation = require 'Formation'
 
 local Rainbow = Rainbow
 local Settings = Settings

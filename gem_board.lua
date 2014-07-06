@@ -72,7 +72,7 @@ local function resume_input()
 end
 
 local function handle_matches()
-  printf("handle_matches")
+  -- printf("handle_matches")
   local results = board:find_and_process_matches()
   if false then
     for i = 1, 6 do
@@ -91,10 +91,10 @@ local button_down = false
 local drag_start = { x = 0, y = 0 }
 
 input_handler = function(e)
-  --
   if not accepting_input then
     return
   end
+  e.x, e.y = board.layer:wndToWorld(e.x, e.y)
   if e.type == 'mouseClick' then
     if e.down then
       button_down = true
@@ -114,7 +114,7 @@ input_handler = function(e)
   else
     return
   end
-  Util.dump(e)
+  -- Util.dump(e)
   if e.down then
     if e.state == 'press' then
       local hex = board:from_screen(e.x, e.y)
@@ -123,7 +123,7 @@ input_handler = function(e)
         local gem = hex.gem
 	this_hex = hex
 	local nx, ny = board:to_screen(hex.x, hex.y)
-	printf("hex: from_screen(%d, %d), coords %d, %d, to_screen(%d, %d)", e.x, e.y, hex.x, hex.y, nx, ny)
+	-- printf("hex: from_screen(%d, %d), coords %d, %d, to_screen(%d, %d)", e.x, e.y, hex.x, hex.y, nx, ny)
 	effective_drag_start = { x = drag_start.x, y = drag_start.y }
 	if gem then
 	  this_gem = gem
