@@ -12,6 +12,7 @@ Sound = require 'Sound'
 
 Board = require 'Board'
 Genre = require 'Genre'
+Stat = require 'Stat'
 Trope = require 'Trope'
 Element = require 'Element'
 Formation = require 'Formation'

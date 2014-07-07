@@ -10,11 +10,11 @@ Element.internal = {
     genre = "fantasy",
     statistics = {
       character = {
-        inspiration = 100,
-	wordcount = 50,
+        inspiration = 'C',
+	wordcount = 'D',
       },
       protagonist = {
-        wordcount = 50,
+        wordcount = 'D',
       }
     }
   },
@@ -36,8 +36,18 @@ Element.internal = {
 Element.flags = { 'protagonist', 'character', 'antagonist', 'narrator', 'support' }
 Element.statistics = { 'inspiration', 'wordcount' }
 
+local function make_stat(tab, key)
+  local s = tab[key]
+  if type(s) == 'number' then
+    tab[key] = Stat.new(nil, s)
+  elseif type(s) == 'string' then
+    tab[key] = Stat.new(s, nil)
+  end
+end
+
 function Element.new(id)
   local e = Util.deepcopy(Element.internal[id])
+  Util.traverse(e.statistics, make_stat)
   setmetatable(e, {__index = Element.memberhash})
   return e
 end
@@ -54,8 +64,13 @@ function Element:stats(flags)
         for stat, values in pairs(details) do
 	  if stats[stat] then
 	    if type(values) == 'table' then
-	      for genre, value in pairs(values) do
-	        stats[stat][genre] = stats[stat][genre] + value
+	      if values.value then
+	        stats[stat][self.genre] = stats[stat][self.genre] + values:value()
+	      else
+	        for genre, value in pairs(values) do
+		  printf("stats[%s][%s] = %s", stat, genre, tostring(value))
+	          stats[stat][genre] = stats[stat][genre] + value:value()
+	        end
 	      end
 	    else
 	      stats[stat][self.genre] = stats[stat][self.genre] + values
@@ -73,21 +88,29 @@ function Element:stats(flags)
   return stats, found_any
 end
 
-function Element:inspect()
+function Element:inspect(prefix)
+  prefix = prefix or ""
+  printf("%s%s", prefix, self.name or "unnamed")
   for i = 1, #Element.flags do
     local flag = Element.flags[i]
     local stats, has_stats = self:stats(flag)
     if has_stats then
-      printf("%s:", flag)
+      printf("%s%s:", prefix, flag)
       for i = 1, #Element.statistics do
 	local s = Element.statistics[i]
 	if stats[s].total and stats[s].total > 0 then
 	  local stat = stats[s]
-          printf("  %s:", s)
+          printf("%s  %s:", prefix, s)
 	  for j = 1, #Genre.genres do
 	    local g = Genre.genres[j]
-	    if stat[g] and stat[g] > 0 then
-	      printf("    %s: %d", g, stat[g])
+	    if stat[g] and stat[g] ~= 0 then
+	      local details
+	      if self.statistics[flag][s].value then
+	        details = self.statistics[flag][s]:inspect(self.genre)
+	      else
+	        details = self.statistics[flag][s][g]:inspect(g)
+	      end
+	      printf("%s    %s", prefix, details)
 	    end
 	  end
 	end

@@ -34,6 +34,22 @@ function Util.flags(obj)
   return t
 end
 
+-- iterate over a table
+function Util.traverse(tab, func, seen)
+  if seen and seen[tab] then
+    return
+  end
+  seen = seen or {}
+  seen[tab] = true
+  for k, v in pairs(tab) do
+    if type(v) == 'table' then
+      Util.traverse(v, func, seen)
+    else
+      func(tab, k)
+    end
+  end
+end
+
 function Util.deepcopy(item, seen)
   local ret = {}
   if seen and seen[item] then

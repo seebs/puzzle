@@ -48,11 +48,12 @@ function Formation:inspect()
   printf("Elements:")
   for i = 1, #self.slots do
     if self.slots[i].element then
-      printf("  %s (%s)", self.slots[i].element.name or "nameless", self.slots[i].flags)
+      self.slots[i].element:inspect("  ")
     else
       printf("  empty (%s)", self.slots[i].flags)
     end
   end
+  printf("Total stats:")
   for stat, details in pairs(stats) do
     printf("  %s:", stat)
     for genre, value in pairs(details) do
