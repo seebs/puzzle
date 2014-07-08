@@ -20,6 +20,14 @@ end
 
 local printf = Util.printf
 
+function Util.iterator(tab)
+  local idx = 0
+  return function()
+    idx = idx + 1
+    return tab[idx]
+  end
+end
+
 function Util.flags(obj)
   local t = {}
   if type(obj) == 'table' then
@@ -47,6 +55,35 @@ function Util.traverse(tab, func, seen)
     else
       func(tab, k)
     end
+  end
+end
+
+function Util.generic_cmp(a, b)
+  local ta, tb = type(a), type(b)
+  if ta ~= tb then
+    return ta < tb
+  end
+  if ta == 'boolean' then
+    return a
+  elseif ta == 'string' or ta == 'number' then
+    return a < b
+  else
+    return tostring(a) < tostring(b)
+  end
+end
+
+function Util.inorder(tab, idxtab, func)
+  local metaidx = 0
+  if not idxtab then
+    idxtab = {}
+    for k, v in pairs(tab) do
+      idxtab[#idxtab + 1] = k
+    end
+    table.sort(idxtab, func)
+  end
+  return function()
+    metaidx = metaidx + 1
+    return idxtab[metaidx], tab[idxtab[metaidx]]
   end
 end
 

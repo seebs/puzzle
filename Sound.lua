@@ -3,7 +3,7 @@ local sprintf = Util.sprintf
 local printf = Util.printf
 local floor = math.floor
 
-local effects = { 'key', 'space', 'return', 'coin' }
+local effects = { 'key', 'space', 'return', 'coin', 'up' }
 
 function Sound.init()
   if Sound.initialized then

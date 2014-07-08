@@ -10,17 +10,18 @@ Input = require 'Input'
 Rainbow = require 'Rainbow'
 Sound = require 'Sound'
 
-Board = require 'Board'
 Genre = require 'Genre'
+Flag = require 'Flag'
 Stat = require 'Stat'
 Trope = require 'Trope'
 Element = require 'Element'
 Formation = require 'Formation'
+Board = require 'Board'
 
 local Rainbow = Rainbow
 local Settings = Settings
 local Util = Util
 
 flower.openWindow('Tropes')
-flower.openScene('gem_board')
+flower.openScene('main_ui')
 

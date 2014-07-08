@@ -4,6 +4,10 @@ Genre.genres = {
   'romance', 'fantasy', 'action', 'scifi', 'crime', 'gothic',
 }
 
+function Genre.iterate()
+  return Util.iterator(Genre.genres)
+end
+
 function Genre.list(value)
   local t = {}
   -- "false" would be okay, though.

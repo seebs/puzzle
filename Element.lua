@@ -33,7 +33,6 @@ Element.internal = {
   }
 }
 
-Element.flags = { 'protagonist', 'character', 'antagonist', 'narrator', 'support' }
 Element.statistics = { 'inspiration', 'wordcount' }
 
 local function make_stat(tab, key)
@@ -91,8 +90,7 @@ end
 function Element:inspect(prefix)
   prefix = prefix or ""
   printf("%s%s", prefix, self.name or "unnamed")
-  for i = 1, #Element.flags do
-    local flag = Element.flags[i]
+  for flag in Flag.iterate() do
     local stats, has_stats = self:stats(flag)
     if has_stats then
       printf("%s%s:", prefix, flag)
@@ -101,8 +99,7 @@ function Element:inspect(prefix)
 	if stats[s].total and stats[s].total > 0 then
 	  local stat = stats[s]
           printf("%s  %s:", prefix, s)
-	  for j = 1, #Genre.genres do
-	    local g = Genre.genres[j]
+	  for g in Genre.iterate() do
 	    if stat[g] and stat[g] ~= 0 then
 	      local details
 	      if self.statistics[flag][s].value then

@@ -33,8 +33,7 @@ function Formation:stats()
       local stats = slot.element:stats(slot.flags)
       for stat, details in pairs(stats) do
         totals[stat] = totals[stat] or Genre.list(0)
-	for i = 1, #Genre.genres do
-	  local genre = Genre.genres[i]
+	for genre in Genre.iterate() do
 	  totals[stat][genre] = totals[stat][genre] + (details[genre] or 0)
 	end
       end

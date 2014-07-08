@@ -139,7 +139,7 @@ local gemberhash = {
     self.prop:setPriority(20)
   end,
   drop = function(self)
-    self:seekLoc(self.hex.sx, self.hex.sy, 0.15)
+    self:seekLoc(self.hex.sx, self.hex.sy, 0.1)
     self:setAlpha(1.0)
     self:pulse(false)
     self.prop:setPriority(1)
@@ -204,6 +204,7 @@ varying MEDP vec2 uvVaryingEffects;
 
 uniform float glow;
 uniform vec4 color;
+uniform vec4 penColor;
 uniform sampler2D rune;
 uniform sampler2D gloss;
 uniform sampler2D sheen;
@@ -211,10 +212,11 @@ uniform sampler2D sheen;
 void main() {
 	vec4 gtext = texture2D(gloss, uvVaryingEffects);
 	vec4 tile = texture2D(rune, uvVaryingTile);
-	// vec4 fakeColor = vec4(1.0, 1.0, 1.0, 1.0);
+	vec4 fakeColor = vec4(1.0, 1.0, 1.0, 1.0);
 	float gscale = (1.0 - (gtext.a * (1.0 - glow)));
 	vec4 gcolor = vec4(color.r * gscale, color.g * gscale, color.b * gscale, color.a);
-        gl_FragColor = (tile * gcolor) + texture2D(sheen, uvVaryingEffects) * ((glow * 0.5) + 0.5);
+        vec4 sum = (tile * gcolor) + texture2D(sheen, uvVaryingEffects) * ((glow * 0.5) + 0.5);
+        gl_FragColor = sum * penColor.a;
 }
 ]]
 
@@ -238,9 +240,8 @@ void main() {
 	vec4 black3 = texture2D(sampler, uvVaryingC);
 	vec4 black4 = texture2D(sampler, uvVaryingD);
 	float black = min(min(black1.a, black2.a), min(black3.a, black4.a));
-	// float black = 1.0;
 	vec4 color = colorVarying;
-	color = vec4(color.r * sample.a * black, color.g * sample.a * black, color.b * sample.a * black, sample.a);
+	color = vec4(color.r * sample.a * black, color.g * sample.a * black, color.b * sample.a * black, sample.a * color.a);
 	gl_FragColor = color;
 }
 ]]
@@ -549,14 +550,15 @@ function Board.new(scene, args)
     gem.prop:setDeck(Board.gem_deck)
     gem.prop:setTexture(Board.gem_multitex)
     local shader = MOAIShader.new()
-    shader:reserveUniforms(5)
+    shader:reserveUniforms(6)
     shader:declareUniform(1, 'color', MOAIShader.UNIFORM_COLOR)
     shader:declareUniform(2, 'glow', MOAIShader.UNIFORM_FLOAT)
+    shader:declareUniform(3, 'penColor', MOAIShader.UNIFORM_PEN_COLOR)
     shader:setAttrLink(1, gem.prop, MOAIColor.COLOR_TRAIT)
     shader:setAttr(2, 0)
-    shader:declareUniformSampler(3, 'rune', 1)
-    shader:declareUniformSampler(4, 'gloss', 2)
-    shader:declareUniformSampler(5, 'sheen', 3)
+    shader:declareUniformSampler(4, 'rune', 1)
+    shader:declareUniformSampler(5, 'gloss', 2)
+    shader:declareUniformSampler(6, 'sheen', 3)
     shader:setVertexAttribute(1, 'position')
     shader:setVertexAttribute(2, 'uv')
     shader:setVertexAttribute(3, 'color')
@@ -775,7 +777,8 @@ function Board:clear_match(match)
   self.combo_meters[match.color]:revealAll()
   self.displayed[match.color] = self.displayed[match.color] + #match.gems
   local tab = self.results[match.color]
-  Sound.play(match.color)
+  -- Sound.play(match.color)
+  Sound.play('up')
   tab[#tab + 1] = #match.gems
   for i = 1, #match.gems do
     local gem = match.gems[i]
@@ -790,15 +793,15 @@ function Board:clear_match(match)
       if gem.glow_anim then
         gem.glow_anim:stop()
       end
-      gem.glow_anim = gem.shader:seekAttr(2, 0.5, 0.2)
+      gem.glow_anim = gem.shader:seekAttr(2, 0.5, 0.1)
       if gem.shrink_anim then
         gem.shrink_anim:stop()
       end
-      gem.shrink_anim = gem.prop:seekScl(0.1, 0.1, 0.2)
+      gem.shrink_anim = gem.prop:seekScl(0.1, 0.1, 0.1)
       action = gem.shrink_anim
     end
   end
-  Util.wait(0.1)
+  Util.wait(0.075)
   return action
 end
 
@@ -832,7 +835,7 @@ function Board:skyfall(color)
 	    hex.gem = nil
 	    prevhex.gem = gem
 	    -- printf("%d,%d falling to previous hex", idx, subidx)
-            action = gem:seekLoc(gem.hex.sx, gem.hex.sy, 0.15, MOAIEaseType.LINEAR)
+            action = gem:seekLoc(gem.hex.sx, gem.hex.sy, 0.10, MOAIEaseType.LINEAR)
 	    any_falling = true
 	  else
 	    -- gems above this one shouldn't fall
@@ -851,7 +854,7 @@ function Board:skyfall(color)
 	newgem.prop:setVisible(true)
 	newgem:pulse(false)
 	prevhex.gem = newgem
-	action = newgem:seekLoc(newgem.hex.sx, newgem.hex.sy, 0.15, MOAIEaseType.LINEAR)
+	action = newgem:seekLoc(newgem.hex.sx, newgem.hex.sy, 0.10, MOAIEaseType.LINEAR)
 	any_falling = true
       end
     end

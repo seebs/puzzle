@@ -22,7 +22,7 @@ local accepting_input = false
 local next_action = nil
 local keep_running = false
 
-function Board.logic_loop()
+function board_scene.logic_loop()
   accepting_input = true
   while keep_running do
     if next_action then
@@ -46,8 +46,8 @@ function board_scene.onOpen()
   flower.InputMgr:addEventListener('mouseClick', input_handler)
   flower.InputMgr:addEventListener('mouseMove', input_handler)
   keep_running = true
-  Board.logic_coroutine = MOAICoroutine.new()
-  Board.logic_coroutine:run(Board.logic_loop)
+  board_scene.logic_coroutine = MOAICoroutine.new()
+  board_scene.logic_coroutine:run(board_scene.logic_loop)
 end
 
 function board_scene.onClose()
@@ -74,6 +74,20 @@ end
 local function handle_matches()
   -- printf("handle_matches")
   local results = board:find_and_process_matches()
+  local total = 0
+  for i = 1, 6 do
+    local subtotal = 0
+    if results[i] then
+      for j = 1, #results[i] do
+        subtotal = subtotal + results[i][j]
+      end
+      total = total + subtotal
+    end
+  end
+  if total > 10 then
+    flower.closeScene({animation = 'fade'})
+    return nil
+  end
   if false then
     for i = 1, 6 do
       if results[i] then
