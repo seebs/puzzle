@@ -24,7 +24,7 @@ flower.DEFAULT_VIEWPORT_SCALE = viewScale
 flower.Label.HIGH_QUALITY_ENABLED = true
 
 -- Set the default font
-flower.Font.DEFAULT_FONT = "arial-rounded.ttf"
+flower.Font.DEFAULT_FONT = "gtw.ttf"
 
 -- Set the default font charcodes
 -- Optimized by setting the loadable string in advance.
