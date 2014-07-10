@@ -3105,6 +3105,8 @@ Label.HIGH_QUALITY_ENABLED = false
 -- @param height Height
 -- @param font (option) Font path, or Font object
 -- @param textSize (option) TextSize
+local stylecache = {}
+
 function Label:init(text, width, height, font, textSize)
     DisplayObject.init(self)
 
@@ -3113,6 +3115,15 @@ function Label:init(text, width, height, font, textSize)
     self.textSize = textSize or Font.DEFAULT_POINTS
 
     font = Resources.getFont(font, nil, self.textSize * self.contentScale)
+    stylecache[font] = stylecache[font] or {}
+    if not stylecache[font][self.textSize] then
+      local s = MOAITextStyle.new()
+      s:setFont(font)
+      s:setSize(self.textSize)
+      s:setColor(0, 0, 0, 1)
+      stylecache[font][self.textSize] = s
+    end
+    self:setStyle(stylecache[font][self.textSize])
 
     self:setFont(font)
     self:setYFlip(true)

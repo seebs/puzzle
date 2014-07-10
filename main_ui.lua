@@ -29,8 +29,9 @@ function main_ui.onCreate()
   main_ui.scene:addChild(layer)
   layer:setTouchEnabled(true)
 
-  local c = Card.new(layer, "test", "foo\nbar\nbaz")
+  local c = Card.new(layer, "t<blue>e</>st", "foo\nb<red>a</>r\nbaz")
   c:setLoc(212, 284)
+  c:moveRot(0, 0, 10, 5, MOAIEaseType.LINEAR)
   
   local board_button = flower.Group(layer)
   local bg = flower.Rect(150, 40)

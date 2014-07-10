@@ -1,4 +1,6 @@
 local Rainbow = {}
+local printf = Util.printf
+local sprintf = Util.sprintf
 
 Rainbow.data = {
   { rgb = { 255, 0, 0 }, name = 'red' },
@@ -23,6 +25,55 @@ local ceil = math.ceil
 local abs = math.abs
 local min = math.min
 local max = math.max
+
+local stylecache = {}
+
+local function color_style(style, color)
+  local font = style:getFont()
+  local size = style:getSize()
+  local scale = style:getScale()
+  stylecache[font] = stylecache[font] or {}
+  stylecache[font][size] = stylecache[font][size] or {}
+  stylecache[font][size][scale] = stylecache[font][size][scale] or {}
+  local tab = stylecache[font][size][scale]
+  if type(color) == 'string' then
+    local found = false
+    for i = 1, #Rainbow.data do
+      if Rainbow.data[i].name == color then
+        color = i
+	found = true
+	break
+      end
+    end
+    -- invalid color
+    if not found then
+      printf("Invalid color: %s", color)
+      return nil
+    end
+  end
+  if not tab[color] then
+    local s = MOAITextStyle.new()
+    s:setFont(font)
+    s:setSize(size)
+    s:setScale(scale)
+    local r, g, b = unpack(Rainbow.hues[color])
+    s:setColor(r / 255, g / 255, b / 255, 1)
+    -- printf("New style for font size %d, scale %.1f, color %s, %.2f %.2f %.2f",
+    --   size, scale, Rainbow.data[color].name, r / 255, g / 255, b / 255)
+    tab[color] = s
+  else
+    -- printf("Reusing style for font size %d, scale %.1f, color %s",
+    --   size, scale, Rainbow.data[color].name)
+  end
+  return tab[color]
+end
+
+function Rainbow.color_styles(textbox)
+  local base = textbox:getStyle()
+  for i = 1, 6 do
+    textbox:setStyle(Rainbow.data[i].name, color_style(base, i))
+  end
+end
 
 function Rainbow.funcs_for(denominator)
   if #Rainbow.hues ~= 6 then
