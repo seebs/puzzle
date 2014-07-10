@@ -28,6 +28,16 @@ function Util.iterator(tab)
   end
 end
 
+function Util.after(time, func, ...)
+  local t = MOAITimer.new()
+  local args = { ... }
+  t:setSpan(time)
+  t:setMode(MOAITimer.NORMAL)
+  t:setListener(MOAIAction.EVENT_STOP, function() func(unpack(args)) end)
+  t:start()
+  return t
+end
+
 function Util.flags(obj)
   local t = {}
   if type(obj) == 'table' then

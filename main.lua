@@ -9,6 +9,7 @@ config = require 'config'
 Input = require 'Input'
 Rainbow = require 'Rainbow'
 Sound = require 'Sound'
+Card = require 'Card'
 
 Genre = require 'Genre'
 Flag = require 'Flag'

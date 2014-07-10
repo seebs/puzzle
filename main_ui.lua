@@ -25,11 +25,19 @@ end
 
 function main_ui.onCreate()
   local layer = flower.Layer()
+  layer:setClearColor(0.5, 0.5, 0.5)
   main_ui.scene:addChild(layer)
   layer:setTouchEnabled(true)
+
+  local c = Card.new(layer, "test", "foo\nbar\nbaz")
+  c:setLoc(212, 284)
   
   local board_button = flower.Group(layer)
-  local label = flower.Label("Board", 120, 30)
+  local bg = flower.Rect(150, 40)
+  bg:setColor(0.3, 0.3, 1.0)
+  board_button:addChild(bg)
+  local label = flower.Label("Board", 150, 40)
+  label:setAlignment(MOAITextBox.CENTER_JUSTIFY, MOAITextBox.CENTER_JUSTIFY)
   board_button:addChild(label)
   board_button:addEventListener("touchDown", function() main_ui.go_to_scene('gem_board') end)
 end
