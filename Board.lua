@@ -16,6 +16,8 @@ local tremove = table.remove
 local rawset = rawset
 local rawget = rawget
 
+Board.fall_time = 0.10
+
 Board.texture_deck = MOAITileDeck2D.new()
 Board.texture_deck:setTexture("texture.png")
 Board.texture_deck:setSize(2, 3,
@@ -116,6 +118,8 @@ local gemberhash = {
     self.prop:setIndex(idx)
     self:setColor(self.board.color(self.index))
     self:setGlow(0.0, 0)
+    self.prop:setScl(self.board.gem_size)
+    self.prop:setVisible(true)
   end,
   setColor = function(self, r, g, b)
     self._r = r or 1.0
@@ -493,7 +497,7 @@ function Board.new(scene, args)
 	hex.textbox:setAttrLink(MOAITransform.INHERIT_LOC, bd.texture_prop, MOAIProp2D.TRANSFORM_TRAIT)
 	hex.textbox:setLoc(hex.sx, hex.sy)
 	hex.textbox:setStyle(Board.text_style)
-	hex.textbox:setRect(-60, -60, 60, 60)
+	hex.textbox:setRect(-70, -70, 70, 70)
 	hex.textbox:setYFlip(true)
 	hex.textbox:setAlignment(MOAITextBox.CENTER_JUSTIFY, MOAITextBox.CENTER_JUSTIFY)
 	hex.textbox:setString("")
@@ -769,7 +773,7 @@ function Board:find_matches()
 end
 
 function Board:clear_match(match)
-  -- printf("Clearing %d gems.", #match.gems)
+  -- printf("Clearing %d gems (%s).", #match.gems, Rainbow.name(match.color))
   local action = nil
   self.results[match.color] = self.results[match.color] or {}
   self.displayed[match.color] = self.displayed[match.color] or 0
@@ -812,55 +816,75 @@ function Board:skyfall(color)
   local any_missing = 0
   -- printf("skyfall, direction %s", dir)
   -- self:label_dir(dir)
+  local most_falling = 0
+  local longest_action = nil
+  local lasthex = nil
 
-  while any_falling do
-    any_missing = 0
-    any_falling = false
-    for i = 1, #self.idx do
-      local falling = false
-      local idx = self.idx[i]
-      local prevhex = nil
-      local missing_row = 0
-      for j = 1, #self.subidx[idx] do
-        local subidx = self.subidx[idx][j]
-        local hex = self.dirs[dir][idx][subidx]
-        local gem = hex and hex.gem
-        if not hex.gem then
-	  -- printf("%d,%d missing, things will fall", idx, subidx)
-          falling = true
-	  any_missing = any_missing + 1
-        elseif falling then
-	  if not gem.locked then
-            gem.hex = prevhex
-	    hex.gem = nil
-	    prevhex.gem = gem
-	    -- printf("%d,%d falling to previous hex", idx, subidx)
-            action = gem:seekLoc(gem.hex.sx, gem.hex.sy, 0.10, MOAIEaseType.LINEAR)
-	    any_falling = true
-	  else
-	    -- gems above this one shouldn't fall
-	    falling = false
-	  end
-        end
-        prevhex = hex
+  for i = 1, #self.idx do
+    local falling = 0
+    local idx = self.idx[i]
+    local needs_gems = {}
+    for j = 1, #self.subidx[idx] do
+      local subidx = self.subidx[idx][j]
+      local hex = self.dirs[dir][idx][subidx]
+      lasthex = hex
+      local gem = hex and hex.gem
+      if not hex.gem then
+	-- printf("%d,%d missing, things will fall", idx, subidx)
+	falling = falling + 1
+	needs_gems[#needs_gems + 1] = hex
+	any_missing = any_missing + 1
+      elseif falling > 0 then
+	if not gem.locked then
+	  local target = tremove(needs_gems, 1)
+	  needs_gems[#needs_gems + 1] = hex
+	  gem.hex = target
+	  hex.gem = nil
+	  target.gem = gem
+	  -- printf("%d, %d falling %d spaces to %d,%d", idx, subidx, falling, target.grids[dir].x, target.grids[dir].y)
+	  action = gem:seekLoc(gem.hex.sx, gem.hex.sy, Board.fall_time * falling, MOAIEaseType.LINEAR)
+	  any_falling = true
+	else
+	  -- gems above this one shouldn't fall
+	  -- printf("%d spaces below a locked gem, skipping", falling)
+	  needs_gems = {}
+	  falling = 0
+	end
       end
-      if falling then
-	-- printf("adding a new gem for row %d (%d missing), dir %s, dx/dy %d/%d", idx, missing_row, dir, directions[dir].dx, directions[dir].dy)
-        local newgem = table.remove(self.gempool)
+    end
+    -- printf("falling: %d needs_gems: %d, available %d", falling, #needs_gems, #self.gempool)
+    for i = 1, falling do
+      -- printf("adding a new gem for row %d, dir %s, dx/dy %d/%d", idx, dir, directions[dir].dx, directions[dir].dy)
+      local newgem = tremove(self.gempool)
+      if newgem then
 	newgem:reset(math.random(6))
-	newgem.hex = prevhex
-	newgem:setLoc(newgem.hex.sx + directions[dir].dx, newgem.hex.sy + directions[dir].dy)
-	newgem.prop:setScl(self.gem_size)
-	newgem.prop:setVisible(true)
+	newgem.hex = tremove(needs_gems, 1)
+	newgem:setLoc(lasthex.sx + directions[dir].dx, lasthex.sy + directions[dir].dy)
 	newgem:pulse(false)
-	prevhex.gem = newgem
-	action = newgem:seekLoc(newgem.hex.sx, newgem.hex.sy, 0.10, MOAIEaseType.LINEAR)
+	newgem.hex.gem = newgem
+	any_missing = any_missing - 1
+	if i > 1 then
+	  -- printf("new gem, falling %d spaces to %d,%d after %d ticks", (falling + 1 - i), newgem.hex.grids[dir].x, newgem.hex.grids[dir].y, i - 1)
+	  Util.after(Board.fall_time * (i - 1), function()
+	    newgem:seekLoc(newgem.hex.sx, newgem.hex.sy, (falling + 1 - i) * Board.fall_time, MOAIEaseType.LINEAR)
+	  end)
+	else
+	  -- printf("new gem, falling %d spaces immediately to %d,%d", falling, newgem.hex.grids[dir].x, newgem.hex.grids[dir].y)
+	  action = newgem:seekLoc(newgem.hex.sx, newgem.hex.sy, falling * Board.fall_time, MOAIEaseType.LINEAR)
+	  if #needs_gems + 1 > most_falling then
+	    most_falling = #needs_gems + 1
+	    longest_action = action
+	  end
+	end
 	any_falling = true
+      else
+        printf("No gem available?")
       end
     end
-    if action then
-      MOAICoroutine.blockOnAction(action)
-    end
+  end
+  if longest_action then
+    -- printf("waiting on longest action (%d gems)", most_falling)
+    MOAICoroutine.blockOnAction(longest_action)
   end
   self.combo_meters[color]:setString(sprintf("Match: %d", self.displayed[color] or 0))
   return any_missing
