@@ -1610,9 +1610,9 @@ end
 -- @return deck
 function DeckMgr:createImageDeck(width, height, flipX, flipY)
     local u0 = flipX and 1 or 0
-    local v0 = flipY and 1 or 0
+    local v0 = flipY and 0 or 1
     local u1 = flipX and 0 or 1
-    local v1 = flipY and 0 or 1
+    local v1 = flipY and 1 or 0
     local deck = MOAIGfxQuad2D.new()
     deck:setUVRect(u0, v0, u1, v1)
     deck:setRect(0, 0, width, height)
