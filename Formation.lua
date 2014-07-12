@@ -16,6 +16,7 @@ local prototypes = {
 function Formation.new(type, ...)
   local f = {}
   local elements = { ... }
+  f.type = type
   f.slots = Util.deepcopy(prototypes[type])
   setmetatable(f, {__index = Formation.memberhash})
   for i = 1, #elements do

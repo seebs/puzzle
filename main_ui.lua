@@ -30,12 +30,14 @@ function main_ui.onCreate()
   main_ui.scene:addChild(layer)
   layer:setTouchEnabled(true)
 
-  local c = Card.new(layer, "t<blue>e</>st", "foo\nb<red>a</>r\nbaz")
+  local c = Card.new(layer)
   c:setLoc(212, 284)
   c:setRot(0, 0, 0)
   
   local e = Element.new(1)
+  local f = Formation.new('anecdote', 1)
   c:display_element(e)
+  -- c:display_formation(f)
   
   local board_button = flower.Group(layer)
   local bg = flower.Rect(150, 40)

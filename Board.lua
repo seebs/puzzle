@@ -325,7 +325,7 @@ function Board.new(scene, args)
   scene:addChild(bd.layer)
   -- built around 768 as a baseline
   bd.base_scale = (flower.viewWidth / 768)
-  printf("base scale: %.2f", bd.base_scale)
+  -- printf("base scale: %.2f", bd.base_scale)
   bd.color_multiplier = args.color_multiplier or 1
   bd.highlights = args.highlights or 0
   bd.color_funcs = Rainbow.funcs_for(bd.color_multiplier)
@@ -375,10 +375,6 @@ function Board.new(scene, args)
   rx, ry = bd.grid:getTileLoc(bd.columns, floor((bd.rows + 1) / 2), MOAIGridSpace.TILE_RIGHT_BOTTOM)
   bd.upper_right_bound.x = rx
   bd.grid_size = { x = bd.upper_right_bound.x - bd.lower_left_bound.x, y = bd.upper_right_bound.y - bd.lower_left_bound.y }
-  printf("grid_size:")
-  Util.dump(bd.lower_left_bound)
-  Util.dump(bd.upper_right_bound)
-  Util.dump(bd.grid_size)
   --[[
     the computed size of the grid should be pretty exact -- if I
     draw lines at those coordinates, they are exactly at the edges
@@ -390,9 +386,9 @@ function Board.new(scene, args)
   x = (flower.viewWidth - bd.grid_size.x) / 2 - bd.lower_left_bound.x,
   y = (flower.viewHeight - bd.grid_size.y) / 2 - bd.lower_left_bound.y + (bd.size.y / 12)
   }
-  printf("screen size: %dx%d", flower.viewWidth, flower.viewHeight)
-  printf("offsets:")
-  Util.dump(bd.offsets)
+  -- printf("screen size: %dx%d", flower.viewWidth, flower.viewHeight)
+  -- printf("offsets:")
+  -- Util.dump(bd.offsets)
 
   bd.grid:fillColor(1)
   bd.texture_grid:fillColor(1)
@@ -431,22 +427,28 @@ function Board.new(scene, args)
   local border_size = 1024 * bd.base_scale
   local xdiff = border_size - bd.grid_size.x
   local ydiff = border_size - bd.grid_size.y
-  printf("border: %dpx tall, grid %dx%d, diff %dx%d", border_size, bd.grid_size.x, bd.grid_size.y, xdiff, ydiff)
+  -- printf("border: %dpx tall, grid %dx%d, diff %dx%d", border_size, bd.grid_size.x, bd.grid_size.y, xdiff, ydiff)
   bd.border_quad:setRect(0, 0, 1024, 1024)
   bd.border_prop:setLoc(-(xdiff / 2) - (bd.lower_left.x - bd.lower_left_bound.x), -(ydiff / 2))
-  bd.border_prop:setAttrLink(MOAITransform.INHERIT_LOC, bd.texture_prop, MOAIProp2D.TRANSFORM_TRAIT)
   bd.layer:insertProp(bd.border_prop)
+  bd.border_prop:setAttrLink(MOAITransform.INHERIT_LOC, bd.texture_prop, MOAIProp2D.TRANSFORM_TRAIT)
+
+  local foo = flower.Label("Foo", 140, 40, nil, 15)
+  foo:setColor(1, 1, 1)
+  foo:setPriority(30)
+  bd.layer:insertProp(foo)
 
   bd.combo_meters = {}
   for i = 1, 6 do
-    bd.combo_meters[i] = flower.Label("Match:", 140, 30, nil, 10)
+    bd.combo_meters[i] = flower.Label("Match:", 140, 30, nil, 12)
     bd.combo_meters[i]:setPriority(11)
+    Rainbow.color_styles(bd.combo_meters[i])
+    bd.combo_meters[i]:setStyle(bd.combo_meters[i]:getStyle(Rainbow.name(i)))
     bd.combo_meters[i]:setYFlip(true)
-    bd.combo_meters[i]:setColor(bd.color(i))
     bd.combo_meters[i]:setAlignment(MOAITextBox.LEFT_JUSTIFY, MOAITextBox.CENTER_JUSTIFY)
-    bd.combo_meters[i]:setLoc(-bd.offsets.x, bd.upper_right.y - (12 * (i - 1)))
-    bd.combo_meters[i]:setAttrLink(MOAITransform.INHERIT_LOC, bd.texture_prop, MOAIProp2D.TRANSFORM_TRAIT)
+    bd.combo_meters[i]:setLoc(3 - bd.offsets.x, bd.upper_right.y - (12 * (i - 1)))
     bd.layer:insertProp(bd.combo_meters[i])
+    bd.combo_meters[i]:setAttrLink(MOAITransform.INHERIT_LOC, bd.texture_prop, MOAIProp2D.TRANSFORM_TRAIT)
   end
 
   for x = 1, bd.columns do
@@ -492,7 +494,7 @@ function Board.new(scene, args)
         bd.hex_count = bd.hex_count + 1
 	hex_locations[#hex_locations + 1] = { x = i, y = j, hex = hex }
         hex.tile = 1
-        hex.ttile = 1
+        hex.ttile = random(6)
 	hex.textbox = MOAITextBox.new()
 	hex.textbox:setAttrLink(MOAITransform.INHERIT_LOC, bd.texture_prop, MOAIProp2D.TRANSFORM_TRAIT)
 	hex.textbox:setLoc(hex.sx, hex.sy)
@@ -500,7 +502,7 @@ function Board.new(scene, args)
 	hex.textbox:setRect(-70, -70, 70, 70)
 	hex.textbox:setYFlip(true)
 	hex.textbox:setAlignment(MOAITextBox.CENTER_JUSTIFY, MOAITextBox.CENTER_JUSTIFY)
-	hex.textbox:setString("")
+	hex.textbox:setString("HEY")
 	bd.layer:insertProp(hex.textbox)
 	hex.textbox:setPriority(2)
         -- bd.b[i][j].ttile = ((i + j) % 6) + 1
@@ -569,7 +571,7 @@ function Board.new(scene, args)
     shader:load(Board.vsh, Board.fsh)
     gem.shader = shader
     gem.prop:setShader(gem.shader)
-    gem:reset(math.random(6))
+    gem:reset(random(6))
     -- for marking matches and falling
     gem.visited = false
     gem.locked = false
@@ -857,7 +859,7 @@ function Board:skyfall(color)
       -- printf("adding a new gem for row %d, dir %s, dx/dy %d/%d", idx, dir, directions[dir].dx, directions[dir].dy)
       local newgem = tremove(self.gempool)
       if newgem then
-	newgem:reset(math.random(6))
+	newgem:reset(random(6))
 	newgem.hex = tremove(needs_gems, 1)
 	newgem:setLoc(lasthex.sx + directions[dir].dx, lasthex.sy + directions[dir].dy)
 	newgem:pulse(false)

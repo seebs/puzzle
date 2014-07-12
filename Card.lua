@@ -13,14 +13,14 @@ function Card.new(layer, heading, text)
   img:setPriority(0)
   -- img:setColor(0, 1, 0)
 
-  local l = flower.Label(heading, 390, 30)
+  local l = flower.Label(heading or "", 390, 30)
   c.group:addChild(l)
   l:setLoc(3, 195)
   l:setAlignment(MOAITextBox.LEFT_JUSTIFY, MOAITextBox.LEFT_JUSTIFY)
   Rainbow.color_styles(l)
   c.header = l
   c.header:setPriority(10)
-  local lines = Util.split(text, "\n")
+  local lines = Util.split(text or "", "\n")
   c.lines = {}
   for i = 1, 10 do
     l = flower.Label(lines[i] or "", 390, 20, nil, 15)
@@ -80,7 +80,7 @@ end
 
 function Card:display_element(element)
   local h = sprintf("<%s>%s</>", Genre.color_name(element.genre), element.name)
-  printf("header %s", h)
+  -- printf("header %s", h)
   self.header:setString(h)
   self.snapshot:setTexture(sprintf("elements/%s.png", element.name))
   self.picframe:setVisible(true)
@@ -90,11 +90,24 @@ function Card:display_element(element)
   self.icon:setColor(Genre.rgb(color))
   self.icon:setVisible(true)
 
-  self.group:seekColor(1, 1, 1, 1, 0.3)
+  MOAICoroutine.blockOnAction(self.group:seekColor(1, 1, 1, 1, 0.3))
+end
+
+function Card:display_formation(formation)
+  local stats = formation:stats()
+  self.icon:setVisible(false)
+  self.picframe:setVisible(false)
+  self.header:setString(formation.type)
+  MOAICoroutine.blockOnAction(self.group:seekColor(1, 1, 1, 1, 0.3))
+end
+
+function Card:hide()
+  MOAICoroutine.blockOnAction(self.group:seekColor(1, 1, 1, 0, 0.3))
 end
 
 Card.memberhash = {
   display_element = Card.display_element,
+  display_formation = Card.display_formation,
 }
 
 local passthrough = { 'setLoc', 'moveLoc', 'seekLoc', 'setRot', 'seekRot', 'moveRot' }
