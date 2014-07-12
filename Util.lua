@@ -20,6 +20,14 @@ end
 
 local printf = Util.printf
 
+local passthrough = { 'setLoc', 'moveLoc', 'seekLoc', 'setRot', 'seekRot', 'moveRot', 'setParent', 'setLayer', 'setVisible', 'setScl', 'moveScl', 'seekScl', 'setColor', 'moveColor', 'seekColor' }
+function Util.makepassthrough(memberhash, target)
+  for i = 1, #passthrough do
+    local name = passthrough[i]
+    memberhash[name] = function(self, ...) return self[target][name](self.group, ...) end
+  end
+end
+
 function Util.iterator(tab)
   local idx = 0
   return function()

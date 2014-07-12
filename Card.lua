@@ -8,10 +8,17 @@ function Card.new(layer, heading, text)
   local img = flower.Image("3x5.png")
   c.group:addChild(img)
   img.texture:setFilter(MOAITexture.GL_LINEAR)
+  printf("%s", tostring(img))
+  printf("%s", tostring(img.getDeck))
   img:getDeck():setUVRect(8/512, 1, 416/512, 8/512)
   img:getDeck():setRect(0, 0, 408, 246)
   img:setPriority(0)
   -- img:setColor(0, 1, 0)
+
+  c.portrait = Portrait.new()
+  c.group:addChild(c.portrait.group)
+  c.portrait:setVisible(false)
+  c.portrait:setLoc(350, 220)
 
   local l = flower.Label(heading or "", 390, 30)
   c.group:addChild(l)
@@ -31,36 +38,6 @@ function Card.new(layer, heading, text)
     c.lines[i]:setPriority(10)
   end
   c.group:setScl(0.6)
-
-  c.picframe = flower.Image("picframe.png")
-  c.picframe.texture:setFilter(MOAITexture.GL_LINEAR)
-  c.group:addChild(c.picframe)
-
-  c.snapshot = flower.Image("blank.png")
-  c.snapshot.texture:setFilter(MOAITexture.GL_LINEAR)
-  c.snapshot:setScl(0.87)
-  c.snapshot:setLoc(125, 131)
-  layer:insertProp(c.snapshot)
-
-  c.snapshot_background = flower.Image("blank.png")
-  c.snapshot_background.texture:setFilter(MOAITexture.GL_LINEAR)
-  c.snapshot_background:setScl(0.87)
-  c.snapshot_background:setLoc(125, 131)
-  layer:insertProp(c.snapshot_background)
-
-  c.snapshot_background:setPriority(1)
-  c.snapshot:setPriority(2)
-  c.picframe:setPriority(3)
-
-  c.snapshot_background:setParent(c.picframe)
-  c.snapshot:setParent(c.picframe)
-
-  c.snapshot:clearAttrLink(MOAIColor.INHERIT_COLOR)
-  c.snapshot_background:clearAttrLink(MOAIColor.INHERIT_COLOR)
-
-  c.picframe:setLoc(345, 200)
-  c.picframe:setScl(0.5)
-  c.picframe:setVisible(false)
 
   c.icon = MOAIProp2D.new()
   c.icon:setDeck(Genre.symbol_deck)
@@ -82,8 +59,7 @@ function Card:display_element(element)
   local h = sprintf("<%s>%s</>", Genre.color_name(element.genre), element.name)
   -- printf("header %s", h)
   self.header:setString(h)
-  self.snapshot:setTexture(sprintf("elements/%s.png", element.name))
-  self.picframe:setVisible(true)
+  self.portrait:display_element(element)
 
   local color = Genre.color(element.genre)
   self.icon:setIndex(color)
@@ -96,7 +72,7 @@ end
 function Card:display_formation(formation)
   local stats = formation:stats()
   self.icon:setVisible(false)
-  self.picframe:setVisible(false)
+  self.portrait:setVisible(false)
   self.header:setString(formation.type)
   MOAICoroutine.blockOnAction(self.group:seekColor(1, 1, 1, 1, 0.3))
 end
@@ -110,10 +86,6 @@ Card.memberhash = {
   display_formation = Card.display_formation,
 }
 
-local passthrough = { 'setLoc', 'moveLoc', 'seekLoc', 'setRot', 'seekRot', 'moveRot' }
-for i = 1, #passthrough do
-  local name = passthrough[i]
-  Card.memberhash[name] = function(self, ...) return self.group[name](self.group, ...) end
-end
+Util.makepassthrough(Card.memberhash, 'group')
 
 return Card

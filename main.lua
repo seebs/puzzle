@@ -6,20 +6,26 @@ local printf = Util.printf
 flower = require 'flower'
 config = require 'config'
 
+-- basic utilities
 Input = require 'Input'
 Rainbow = require 'Rainbow'
 Sound = require 'Sound'
-Card = require 'Card'
 
+-- data structures
 Genre = require 'Genre'
 Flag = require 'Flag'
 Stat = require 'Stat'
 Trope = require 'Trope'
 Element = require 'Element'
 Formation = require 'Formation'
+Player = require 'Player'
+
+-- base UI elements
+Portrait = require 'Portrait'
 Board = require 'Board'
 
-Player = require 'Player'
+-- higher-level UI elements
+Card = require 'Card'
 
 local Rainbow = Rainbow
 local Settings = Settings

@@ -812,6 +812,7 @@ function Board:find_and_break_matches()
     count = count + 1
   end
   self:iterate(function(hex, gem) if gem then gem:reset() end end)
+  printf("broke matches: %d passes.", count)
   self.matches = {}
 end
 
@@ -828,7 +829,7 @@ function Board:clear_match(match)
   local action = nil
   self.results[match.color] = self.results[match.color] or {}
   self.displayed[match.color] = self.displayed[match.color] or 0
-  self.combo_meters[match.color]:setString(sprintf("Match: %d + %d", self.displayed[match.color], #match.gems))
+  self.combo_meters[match.color]:setString(sprintf("Match: %d+%d", self.displayed[match.color], #match.gems))
   self.combo_meters[match.color]:revealAll()
   self.displayed[match.color] = self.displayed[match.color] + #match.gems
   local tab = self.results[match.color]

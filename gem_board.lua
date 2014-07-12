@@ -37,7 +37,11 @@ function board_scene.onCreate()
   lines = {}
   local approx_size = flower.viewWidth / 8
   -- printf("onCreate: board is %s.", tostring(board))
-  board = Board.new(board_scene.scene, { texture = 1, color_multiplier = 1, rows = 7, columns = 7, size = { x = approx_size } })
+  if not board then
+    board = Board.new(board_scene.scene, { texture = 1, color_multiplier = 1, rows = 7, columns = 7, size = { x = approx_size } })
+  else
+    Board.populate()
+  end
 end
 
 function board_scene.onOpen()
@@ -85,7 +89,7 @@ local function handle_matches()
       total = total + subtotal
     end
   end
-  if total > 30 then
+  if total > 15 then
     flower.closeScene({animation = 'fade'})
     return nil
   end
