@@ -19,9 +19,13 @@ Element = require 'Element'
 Formation = require 'Formation'
 Board = require 'Board'
 
+Player = require 'Player'
+
 local Rainbow = Rainbow
 local Settings = Settings
 local Util = Util
+
+player = Player.new()
 
 flower.openWindow('Tropes')
 flower.openScene('main_ui')

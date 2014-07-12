@@ -10,17 +10,20 @@ local function texload(name, wrap)
   t:setWrap(wrap)
   return t
 end
-Genre.symbol_texture = texload("gems.png", false)
-Genre.symbol_texture:setFilter(MOAITexture.GL_LINEAR)
--- Genre.symbol_texture:setFilter(MOAITexture.GL_NEAREST)
 
-Genre.symbol_deck = MOAITileDeck2D.new()
-Genre.symbol_deck:setTexture(Genre.symbol_texture)
-Genre.symbol_deck:setSize(2, 3,
-128/256, 128/512,
-1/256, 1/512,
-126/256, 126/512
-)
+if MOAITexture then
+  Genre.symbol_texture = texload("gems.png", false)
+  Genre.symbol_texture:setFilter(MOAITexture.GL_LINEAR)
+  -- Genre.symbol_texture:setFilter(MOAITexture.GL_NEAREST)
+
+  Genre.symbol_deck = MOAITileDeck2D.new()
+  Genre.symbol_deck:setTexture(Genre.symbol_texture)
+  Genre.symbol_deck:setSize(2, 3,
+  128/256, 128/512,
+  1/256, 1/512,
+  126/256, 126/512
+  )
+end
 
 Genre.color_funcs = Rainbow.funcs_for(1)
 Genre.color_values = Genre.color_funcs.smooth
