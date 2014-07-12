@@ -4,17 +4,18 @@ local sprintf = Util.sprintf
 
 function Card.new(layer, heading, text)
   local c = {}
-  c.group = flower.Group(layer, 400, 320)
+  c.group = flower.Group(layer, 400, 360)
   local img = flower.Image("3x5.png")
   c.group:addChild(img)
   img.texture:setFilter(MOAITexture.GL_LINEAR)
   img:getDeck():setUVRect(8/512, 1, 416/512, 8/512)
+  img:getDeck():setRect(0, 0, 408, 246)
   img:setPriority(0)
   -- img:setColor(0, 1, 0)
 
   local l = flower.Label(heading, 390, 30)
   c.group:addChild(l)
-  l:setLoc(10, 205)
+  l:setLoc(3, 195)
   l:setAlignment(MOAITextBox.LEFT_JUSTIFY, MOAITextBox.LEFT_JUSTIFY)
   Rainbow.color_styles(l)
   c.header = l
@@ -25,7 +26,7 @@ function Card.new(layer, heading, text)
     l = flower.Label(lines[i] or "", 390, 20, nil, 15)
     Rainbow.color_styles(l)
     c.group:addChild(l)
-    l:setLoc(10, 205 - (18 * i))
+    l:setLoc(3, 200 - (18 * i))
     c.lines[i] = l
     c.lines[i]:setPriority(10)
   end
@@ -36,11 +37,13 @@ function Card.new(layer, heading, text)
   c.group:addChild(c.picframe)
 
   c.snapshot = flower.Image("blank.png")
+  c.snapshot.texture:setFilter(MOAITexture.GL_LINEAR)
   c.snapshot:setScl(0.87)
   c.snapshot:setLoc(125, 131)
   layer:insertProp(c.snapshot)
 
   c.snapshot_background = flower.Image("blank.png")
+  c.snapshot_background.texture:setFilter(MOAITexture.GL_LINEAR)
   c.snapshot_background:setScl(0.87)
   c.snapshot_background:setLoc(125, 131)
   layer:insertProp(c.snapshot_background)
@@ -55,16 +58,16 @@ function Card.new(layer, heading, text)
   c.snapshot:clearAttrLink(MOAIColor.INHERIT_COLOR)
   c.snapshot_background:clearAttrLink(MOAIColor.INHERIT_COLOR)
 
-  c.picframe:setLoc(425, 200)
+  c.picframe:setLoc(345, 200)
   c.picframe:setScl(0.5)
   c.picframe:setVisible(false)
 
   c.icon = MOAIProp2D.new()
   c.icon:setDeck(Genre.symbol_deck)
   c.icon:setVisible(false)
-  c.icon:setLoc(200, 200)
+  c.icon:setLoc(20, 240)
   c.icon:setPriority(4)
-  c.icon:setScl(50, 50)
+  c.icon:setScl(30, 30)
   c.icon:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE_MINUS_SRC_ALPHA)
   c.group:addChild(c.icon)
 
@@ -77,6 +80,7 @@ end
 
 function Card:display_element(element)
   local h = sprintf("<%s>%s</>", Genre.color_name(element.genre), element.name)
+  printf("header %s", h)
   self.header:setString(h)
   self.snapshot:setTexture(sprintf("elements/%s.png", element.name))
   self.picframe:setVisible(true)

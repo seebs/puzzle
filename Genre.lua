@@ -12,6 +12,7 @@ local function texload(name, wrap)
 end
 Genre.symbol_texture = texload("gems.png", false)
 Genre.symbol_texture:setFilter(MOAITexture.GL_LINEAR)
+-- Genre.symbol_texture:setFilter(MOAITexture.GL_NEAREST)
 
 Genre.symbol_deck = MOAITileDeck2D.new()
 Genre.symbol_deck:setTexture(Genre.symbol_texture)

@@ -14,7 +14,7 @@ Rainbow.data = {
 Rainbow.hues = {}
 
 for i = 1, #Rainbow.data do
-  Rainbow.hues[i] = Rainbow.data[i].rgb
+  Rainbow.hues[i] = { unpack(Rainbow.data[i].rgb) }
 end
 
 Rainbow.smoothed = {}
@@ -133,7 +133,7 @@ end
 function Rainbow.smoothify(denominator)
   local tab = Rainbow.smoothed[denominator] or {}
   if denominator == 1 then
-    local t = { unpack(Rainbow.hues) }
+    local t = Util.deepcopy(Rainbow.hues)
     for i = 1, #t do
       t[i][1] = t[i][1] / 255
       t[i][2] = t[i][2] / 255

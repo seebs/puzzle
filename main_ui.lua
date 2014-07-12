@@ -32,8 +32,7 @@ function main_ui.onCreate()
 
   local c = Card.new(layer, "t<blue>e</>st", "foo\nb<red>a</>r\nbaz")
   c:setLoc(212, 284)
-  c:setRot(0, 0, 5)
-  -- c:moveRot(0, 0, 10, 5, MOAIEaseType.LINEAR)
+  c:setRot(0, 0, 0)
   
   local e = Element.new(1)
   c:display_element(e)
