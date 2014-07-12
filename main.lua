@@ -25,7 +25,9 @@ Portrait = require 'Portrait'
 Board = require 'Board'
 
 -- higher-level UI elements
+UI_Button = require 'UI_Button'
 Card = require 'Card'
+UI_Formation = require 'UI_Formation'
 
 local Rainbow = Rainbow
 local Settings = Settings

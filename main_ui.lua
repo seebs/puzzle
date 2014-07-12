@@ -24,35 +24,34 @@ function main_ui.go_to_scene(scene)
 end
 
 function main_ui.onCreate()
-  local layer = flower.Layer()
-  -- layer:setClearColor(1.0, 0, 0.7)
-  layer:setClearColor(0.3, 0.2, 0.1)
-  main_ui.scene:addChild(layer)
-  layer:setTouchEnabled(true)
+  main_ui.ui = main_ui.ui or {}
+  if not main_ui.ui.layer then
+    main_ui.ui.layer = flower.Layer()
+    main_ui.ui.layer:setClearColor(0.3, 0.2, 0.1)
+    -- layer:setClearColor(1.0, 0, 0.7)
+  end
+  main_ui.scene:addChild(main_ui.ui.layer)
 
-  local c = Card.new(layer)
-  c:setLoc(212, 284)
-  c:setRot(0, 0, 0)
+  if not main_ui.card then
+    local c = Card.new(main_ui.ui.layer)
+    c:setLoc(212, 284)
+    c:setRot(0, 0, 0)
+    main_ui.card = c
+  end
 
-  local e = Element.new(1)
-  local f = Formation.new('anecdote', 1)
-  c:display_element(e)
-  -- c:display_formation(f)
-
-  local board_button = flower.Group(layer)
-  local bg = flower.Rect(150, 40)
-  bg:setColor(0.3, 0.3, 1.0)
-  board_button:addChild(bg)
-  local label = flower.Label("Board", 150, 40)
-  label:setAlignment(MOAITextBox.CENTER_JUSTIFY, MOAITextBox.CENTER_JUSTIFY)
-  board_button:addChild(label)
-  board_button:addEventListener("touchDown", function() main_ui.go_to_scene('gem_board') end)
+  local board_button = UI_Button.new("board")
+  board_button.group:setLoc(100, 100)
+  board_button.group:setLayer(main_ui.ui.layer)
+  board_button.group:addEventListener("touchDown", function() main_ui.go_to_scene('gem_board') end)
 end
 
 function main_ui.onOpen()
+  main_ui.card:setVisible(false)
+  main_ui.ui.layer:setTouchEnabled(true)
 end
 
 function main_ui.onClose()
+  main_ui.ui.layer:setTouchEnabled(false)
 end
 
 return main_ui

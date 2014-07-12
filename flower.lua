@@ -1786,7 +1786,7 @@ function DeckMgr:createNineImageDeck(fileName)
     local stretchColumns = self:_createStretchRowsOrColumns(image, false)
     local contentPadding = self:_getNineImageContentPadding(image)
     local texture = Resources.getTexture(filePath)
-    local uvRect = {1 / imageWidth, 1 / imageHeight, (imageWidth - 1) / imageWidth, (imageHeight - 1) / imageHeight}
+    local uvRect = {1 / imageWidth, (imageHeight - 1) / imageHeight, (imageWidth - 1) / imageWidth, 1 / imageHeight}
 
     local deck = MOAIStretchPatch2D.new()
     deck.imageWidth = imageWidth
