@@ -114,12 +114,17 @@ local gemberhash = {
     end
   end,
   reset = function(self, idx)
-    self.index = idx
-    self.prop:setIndex(idx)
+    if idx then
+      self.index = idx
+      self.prop:setIndex(idx)
+    end
     self:setColor(self.board.color(self.index))
     self:setGlow(0.0, 0)
     self.prop:setScl(self.board.gem_size)
     self.prop:setVisible(true)
+    self.visited = false
+    self.locked = false
+    self.matched = {}
   end,
   setColor = function(self, r, g, b)
     self._r = r or 1.0
@@ -572,10 +577,6 @@ function Board.new(scene, args)
     gem.shader = shader
     gem.prop:setShader(gem.shader)
     gem:reset(random(6))
-    -- for marking matches and falling
-    gem.visited = false
-    gem.locked = false
-    gem.matched = {}
 
     gem.prop:setScl(bd.gem_size)
     gem:setAlpha(1.0)
@@ -617,6 +618,8 @@ function Board.new(scene, args)
   bd.scriptprop:setDeck(bd.scriptdeck)
   bd.scriptprop:setPriority(10)
   bd.layer:insertProp(bd.scriptprop)
+
+  bd:find_and_break_matches()
 
   return bd
 end
@@ -699,6 +702,17 @@ function Board:match_gem_direction(gem, dir)
   end
 end
 
+function Board:populate()
+  local f = function(hex, gem)
+    if not gem then
+      gem = tremove(self.gempool)
+    end
+    gem:reset(random(6))
+  end
+  self:iterate(f)
+  self:find_and_break_matches()
+end
+
 function Board:match_one_gem(gem)
   if not gem or not gem.hex then
     return
@@ -725,7 +739,6 @@ function Board:find_and_process_matches()
   end
   while #self.matches > 0 do
     local this_color = {}
-    local matches_to_clear
     local found_any = false
     local inner_count = 0
     while not found_any and inner_count < 6 do
@@ -766,6 +779,42 @@ function Board:find_and_process_matches()
   end
   return self.results
 end
+
+function Board:find_and_break_matches()
+  self.active_match_color = 1
+  self:find_matches()
+  local count = 0
+  while #self.matches > 0 do
+    local this_color = {}
+    local found_any = false
+    local inner_count = 0
+    while not found_any and inner_count < 6 do
+      local broke = 0
+      for i = #self.matches, 1, -1 do
+        if self.matches[i].color == self.active_match_color then
+	  found_any = true
+	  -- printf("found match: color %d (direction %s)", self.active_match_color, direction_idx[self.active_match_color])
+          local match = tremove(self.matches, i)
+	  local c = match.gems[2].index
+	  c = (((c - 1) + random(5)) % 6) + 1
+	  broke = broke + 1
+	  match.gems[2]:reset(c)
+        end
+      end
+      printf("broke %d %s matches", broke, Rainbow.name(self.active_match_color))
+      inner_count = inner_count + 1
+      if not found_any then
+        self.active_match_color = (self.active_match_color % 6) + 1
+      end
+    end
+    self:find_matches()
+    self.active_match_color = (self.active_match_color % 6) + 1
+    count = count + 1
+  end
+  self:iterate(function(hex, gem) if gem then gem:reset() end end)
+  self.matches = {}
+end
+
 
 function Board:find_matches()
   self.matches = {}
@@ -900,8 +949,10 @@ Board.funcs = {
   match_one_gem = Board.match_one_gem,
   match_gem_direction = Board.match_gem_direction,
   iterate = Board.iterate,
+  populate = Board.populate,
   label_dir = Board.label_dir,
   clear_match = Board.clear_match,
+  find_and_break_matches = Board.find_and_break_matches,
   skyfall = Board.skyfall
 }
 
