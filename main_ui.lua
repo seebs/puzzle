@@ -33,6 +33,9 @@ function main_ui.onCreate()
   c:setLoc(212, 284)
   c:moveRot(0, 0, 10, 5, MOAIEaseType.LINEAR)
   
+  local e = Element.new(1)
+  c:display_element(e)
+  
   local board_button = flower.Group(layer)
   local bg = flower.Rect(150, 40)
   bg:setColor(0.3, 0.3, 1.0)
