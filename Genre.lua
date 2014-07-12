@@ -11,6 +11,7 @@ local function texload(name, wrap)
   return t
 end
 Genre.symbol_texture = texload("gems.png", false)
+Genre.symbol_texture:setFilter(MOAITexture.GL_LINEAR)
 
 Genre.symbol_deck = MOAITileDeck2D.new()
 Genre.symbol_deck:setTexture(Genre.symbol_texture)
@@ -19,6 +20,9 @@ Genre.symbol_deck:setSize(2, 3,
 1/256, 1/512,
 126/256, 126/512
 )
+
+Genre.color_funcs = Rainbow.funcs_for(1)
+Genre.color_values = Genre.color_funcs.smooth
 
 Genre.colors = {}
 
@@ -31,6 +35,14 @@ function Genre.iterate()
 end
 
 function Genre.color(g)
+  return Genre.colors[g]
+end
+
+function Genre.rgb(g)
+  return Genre.color_values(Genre.colors[g] or g)
+end
+
+function Genre.color_name(g)
   return Rainbow.name(Genre.colors[g])
 end
 

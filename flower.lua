@@ -2621,6 +2621,8 @@ function Image:init(texture, width, height, flipX, flipY)
 
     self:setTexture(texture)
 
+    self:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE_MINUS_SRC_ALPHA)
+
     if width or height then
         local tw, th = self.texture:getSize()
         self:setSize(width or tw, height or th)

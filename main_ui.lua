@@ -25,13 +25,15 @@ end
 
 function main_ui.onCreate()
   local layer = flower.Layer()
-  layer:setClearColor(0.5, 0.5, 0.5)
+  -- layer:setClearColor(1.0, 0, 0.7)
+  layer:setClearColor(0.3, 0.2, 0.1)
   main_ui.scene:addChild(layer)
   layer:setTouchEnabled(true)
 
   local c = Card.new(layer, "t<blue>e</>st", "foo\nb<red>a</>r\nbaz")
   c:setLoc(212, 284)
-  c:moveRot(0, 0, 10, 5, MOAIEaseType.LINEAR)
+  c:setRot(0, 0, 5)
+  -- c:moveRot(0, 0, 10, 5, MOAIEaseType.LINEAR)
   
   local e = Element.new(1)
   c:display_element(e)
