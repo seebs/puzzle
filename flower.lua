@@ -3407,6 +3407,8 @@ function TouchHandler:onTouch(e)
     -- touch event
     local e2 = table.copy(e, self.TOUCH_EVENT)
 
+    e2.active_prop = prop
+    e2.other_prop = prop2
     -- dispatch event
     if prop then
         e2.prop = prop
@@ -3423,6 +3425,8 @@ function TouchHandler:onTouch(e)
     -- reset properties to free resources used in cached event
     e2.data = nil
     e2.prop = nil
+    e2.active_prop = nil
+    e2.other_prop = nil
     e2.target = nil
     e2:setListener(nil, nil)
 end
