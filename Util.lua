@@ -24,7 +24,9 @@ local passthrough = { 'setLoc', 'moveLoc', 'seekLoc', 'setRot', 'seekRot', 'move
 function Util.makepassthrough(memberhash, target)
   for i = 1, #passthrough do
     local name = passthrough[i]
-    memberhash[name] = function(self, ...) return self[target][name](self.group, ...) end
+    if not memberhash[name] then
+      memberhash[name] = function(self, ...) return self[target][name](self[target], ...) end
+    end
   end
 end
 
