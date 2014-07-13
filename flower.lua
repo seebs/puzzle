@@ -2161,6 +2161,7 @@ function Group:init(layer, width, height)
     self.children = {}
     self.isGroup = true
     self.layer = layer
+    self.scissor = nil
     self:setSize(width or 0, height or 0)
 
     self:setPivToCenter()
@@ -2176,6 +2177,19 @@ function Group:setSize(width, height)
 end
 
 ---
+-- Sets a scissor rect for this group (and any children)
+-- @param scissor MOAIScissorRect
+function Group:setScissorRect(scissor)
+  self.scissor = scissor
+  for i = 1, #self.children do
+    local child = self.children[i]
+    if child.setScissorRect then
+      child:setScissorRect(self.scissor)
+    end
+  end
+end
+
+---
 -- Adds the specified child.
 -- @param child DisplayObject
 function Group:addChild(child)
@@ -2187,6 +2201,10 @@ function Group:addChild(child)
         elseif self.layer then
             self.layer:insertProp(child)
         end
+
+	if self.scissor and child.setScissorRect then
+	  child:setScissorRect(self.scissor)
+	end
 
         return true
     end
@@ -2206,6 +2224,10 @@ function Group:removeChild(child)
         elseif self.layer then
             self.layer:removeProp(child)
         end
+
+	if self.scissor and child.setScissorRect then
+	  child:setScissorRect(nil)
+	end
 
         return true
     end
