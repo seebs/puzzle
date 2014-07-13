@@ -34,13 +34,12 @@ function board_scene.logic_loop()
 end
 
 function board_scene.onCreate()
-  lines = {}
-  local approx_size = flower.viewWidth / 8
   -- printf("onCreate: board is %s.", tostring(board))
   if not board then
+    local approx_size = flower.viewWidth / 8
     board = Board.new(board_scene.scene, { texture = 1, color_multiplier = 1, rows = 7, columns = 7, size = { x = approx_size } })
   else
-    Board.populate()
+    board:populate()
   end
 end
 
@@ -63,6 +62,7 @@ function board_scene.onClose()
   flower.InputMgr:removeEventListener('mouseMove', input_handler)
   keep_running = false
   accepting_input = false
+  board = nil
 end
 
 local this_gem = nil

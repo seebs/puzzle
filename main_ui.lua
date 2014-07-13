@@ -32,12 +32,14 @@ function main_ui.onCreate()
   end
   main_ui.scene:addChild(main_ui.ui.layer)
 
-  if not main_ui.card then
+  if not main_ui.ui.card then
     local c = Card.new(main_ui.ui.layer)
     c:setLoc(212, 284)
     c:setRot(0, 0, 0)
-    main_ui.card = c
+    main_ui.ui.card = c
   end
+  local e = Element.new(1)
+  main_ui.ui.card:display_element(e)
 
   local board_button = UI_Button.new("board", 150, 35, function() main_ui.go_to_scene('gem_board') end)
   board_button.group:setLoc(100, 100)
@@ -45,7 +47,7 @@ function main_ui.onCreate()
 end
 
 function main_ui.onOpen()
-  main_ui.card:setVisible(false)
+  -- main_ui.ui.card:setVisible(false)
   main_ui.ui.layer:setTouchEnabled(true)
 end
 

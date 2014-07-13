@@ -620,6 +620,7 @@ function Board.new(scene, args)
   bd.layer:insertProp(bd.scriptprop)
 
   bd:find_and_break_matches()
+  printf("bd: %s", tostring(bd))
 
   return bd
 end

@@ -24,10 +24,11 @@ function Portrait.new(layer)
   p.snapshot:setLoc(125, 131)
   p.snapshot:setPriority(2)
 
-  p.snapshot_background = flower.Image("blank.png")
-  p.snapshot_background.texture:setFilter(MOAITexture.GL_LINEAR)
-  p.snapshot_background:setScl(0.87)
-  p.snapshot_background:setLoc(125, 131)
+  p.snapshot_background = flower.SheetImage('genre_backgrounds.png')
+  p.snapshot_background:setSheetSize(2, 4)
+  p.snapshot_background:setIndex(1)
+  p.snapshot_background:setScl(1.71)
+  p.snapshot_background:setLoc(16, 22)
   p.snapshot_background:setPriority(1)
   
   p.group:addChild(p.snapshot_background)
@@ -48,6 +49,7 @@ end
 
 function Portrait:display_element(element)
   self.snapshot:setTexture(sprintf("elements/%s.png", element.name))
+  self.snapshot_background:setIndex(Genre.color(element.genre) or 7)
   self:setVisible(true)
 end
 

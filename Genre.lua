@@ -1,5 +1,8 @@
 local Genre = {}
 
+local printf = Util.printf
+local sprintf = Util.sprintf
+
 Genre.genres = {
   'romance', 'fantasy', 'action', 'scifi', 'crime', 'gothic',
 }
@@ -22,6 +25,17 @@ if MOAITexture then
   128/256, 128/512,
   1/256, 1/512,
   126/256, 126/512
+  )
+
+  Genre.background_texture = texload("genre_backgrounds.png", false)
+  Genre.background_texture:setFilter(MOAITexture.GL_LINEAR)
+
+  Genre.background_deck = MOAITileDeck2D.new()
+  Genre.background_deck:setTexture(Genre.background_texture)
+  Genre.background_deck:setSize(2, 4,
+  128/256, 128/512,
+  0/256, 0/512,
+  128/256, 128/512
   )
 end
 
