@@ -3,7 +3,7 @@ local UI_Button = {}
 local printf = Util.printf
 local sprintf = Util.sprintf
 
-function UI_Button.new(text, func, ...)
+function UI_Button.new(text, width, height, func, ...)
   local b = {}
   b.width = width or 150
   b.height = height or 45

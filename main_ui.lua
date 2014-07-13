@@ -39,7 +39,7 @@ function main_ui.onCreate()
     main_ui.card = c
   end
 
-  local board_button = UI_Button.new("board", function() main_ui.go_to_scene('gem_board') end)
+  local board_button = UI_Button.new("board", 150, 35, function() main_ui.go_to_scene('gem_board') end)
   board_button.group:setLoc(100, 100)
   board_button.group:setLayer(main_ui.ui.layer)
 end
