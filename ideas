@@ -14,6 +14,24 @@ Loose ideas:
 	things, but in some cases you might get more benefit right now from levelling
 	something.
 
+	Tropes/Pacing:
+		Tropes cost a resource (pacing, aka mana). Initial cost is usually
+		large. Every turn, decays by one. (One per type, if multiple types.)
+		Minimum cost one-per-type (but zero for unused types).
+
+		Every character has a ready-to-activate state, which comes from
+		a turn on which they don't use their trope.
+
+		If you do not attack, you generate one pacing of your primary type.
+		
+		Some characters may generate additional pacing.
+
+		If you use a trope, it resets to half its original cost and then
+		decays normally.
+
+		If you generate pacing and are capped, your trope decays in cost
+		an extra point.
+
 	Health: Maybe you should get temp hit points from enemies or something?
 
 	Possibly party "role" slots determining damage/healing/hp allocation?
@@ -68,6 +86,11 @@ Loose ideas:
 		scifi (atom, green)
 		crime (dagger blue)
 		gothic (bat, purple)
+
+	Tones:
+		exciting/cozy
+		tragic/comic
+		mythic/mundane
 	
 	Defense:
 		dmg = dmg / (pow(2, defense/damage))

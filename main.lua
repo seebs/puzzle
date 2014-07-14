@@ -27,6 +27,7 @@ Board = require 'Board'
 -- higher-level UI elements
 UI_Button = require 'UI_Button'
 Card = require 'Card'
+UI_Scrolllist = require 'UI_Scrolllist'
 UI_Formation = require 'UI_Formation'
 
 local Rainbow = Rainbow

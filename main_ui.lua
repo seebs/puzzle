@@ -23,6 +23,40 @@ function main_ui.go_to_scene(scene)
   flower.openScene(scene)
 end
 
+function main_ui.makeitem(g, o, w, h)
+  o.r = flower.Rect(w, h)
+  o.r:setColor(1, .7, .7)
+  g:addChild(o.r)
+  o.l = flower.Label("", w, h)
+  o.l:setLoc(10, 0)
+  g:addChild(o.l)
+  o.l2 = flower.Label(sprintf("%d", o.idx) , w, h)
+  o.l2:setLoc(w - 20, 0)
+  g:addChild(o.l2)
+end
+
+function main_ui.displayitem(g, o, i, w, h)
+  o.l:setString(i.name)
+end
+
+function main_ui.clickitem(item)
+  printf("item clicked: %s", item.name)
+end
+
+local list = {
+  { name = "3x5.acorn" },
+  { name = "3x5.png" },
+  { name = "Board.lua" },
+  { name = "Card.lua" },
+  { name = "Element.lua" },
+  { name = "Flag.lua" },
+  { name = "Formation.lua" },
+  { name = "Genre.lua" },
+  { name = "Hexes.lua" },
+  { name = "Input.lua" },
+  { name = "Player.lua" },
+}
+
 function main_ui.onCreate()
   main_ui.ui = main_ui.ui or {}
   if not main_ui.ui.layer then
@@ -32,22 +66,21 @@ function main_ui.onCreate()
   end
   main_ui.scene:addChild(main_ui.ui.layer)
 
-  if not main_ui.ui.card then
-    local c = Card.new(main_ui.ui.layer)
-    c:setLoc(212, 284)
-    c:setRot(0, 0, 0)
-    main_ui.ui.card = c
+  if not main_ui.ui.scrolllist then
+    main_ui.ui.scrolllist = UI_Scrolllist.new(250, 200, 180, 40, main_ui.makeitem, main_ui.displayitem, main_ui.clickitem, list)
   end
-  local e = Element.new(1)
-  main_ui.ui.card:display_element(e)
+  main_ui.ui.scrolllist:setLayer(main_ui.ui.layer)
+  main_ui.ui.scrolllist:setLoc(20, 100)
+  main_ui.ui.scrolllist:scroll(5)
 
-  local board_button = UI_Button.new("board", 150, 35, function() main_ui.go_to_scene('gem_board') end)
-  board_button.group:setLoc(100, 100)
-  board_button.group:setLayer(main_ui.ui.layer)
+  if not main_ui.ui.board_button then
+    main_ui.ui.board_button = UI_Button.new("board", 150, 35, function() main_ui.go_to_scene('gem_board') end)
+    main_ui.ui.board_button.group:setLoc(100, 50)
+    main_ui.ui.board_button.group:setLayer(main_ui.ui.layer)
+  end
 end
 
 function main_ui.onOpen()
-  -- main_ui.ui.card:setVisible(false)
   main_ui.ui.layer:setTouchEnabled(true)
 end
 
