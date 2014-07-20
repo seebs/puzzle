@@ -36,6 +36,7 @@ function UI_Scrolllist.new(width, height, itemwidth, itemheight, createfunc, dis
 
   o.scissor = MOAIScissorRect.new()
   o.scissor:setRect(0, 0, o.width, o.height)
+  o.group:setBounds(0, 0, 0, o.width, o.height, 0)
 
   o.group:setScissorRect(o.scissor)
 
@@ -43,9 +44,10 @@ function UI_Scrolllist.new(width, height, itemwidth, itemheight, createfunc, dis
 
   o.visible_items = (o.height / (o.itemheight + o.spacing)) + 2
 
-  if true then
+  if false then
     o.debuggy = flower.Rect(1000, 1000)
     o.group:addChild(o.debuggy)
+    printf("debuggy: %s", tostring(o.debuggy))
     o.debuggy:setLoc(-100, -100)
     o.debuggy:setColor(0, 0.5, 0, 0.3)
   end
@@ -91,7 +93,7 @@ function UI_Scrolllist:event(e)
   local x0, y0, x1, y1 = self.scissor:getRect()
   local x, y = self.scissor:worldToModel(layer:wndToWorld(e.x, e.y))
   local for_me = x > x0 and x < x1 and y > y0 and y < y1
-  -- printf("event: main list, event %s [for_me %s]", e.type, for_me)
+  printf("event: main list, event %s [for_me %s]", e.type, tostring(for_me))
   if not for_me then
     self.drag_start = nil
     return
@@ -112,7 +114,7 @@ end
 
 function UI_Scrolllist:item_event(e)
   local for_me = e.active_prop and self.props[e.active_prop] or false
-  -- printf("item_event: item %s, event %s [for_me %s].", tostring(self.item), e.type, for_me)
+  -- printf("item_event: item %s, event %s [for_me %s].", tostring(self.item), e.type, tostring(for_me))
   if e.type == 'touchDown' then
     -- look clicked
     if for_me then
@@ -148,7 +150,8 @@ function UI_Scrolllist:display()
   for i = 1, self.visible_items do
     local j = i + self.row_offset
     local g = self.items[i]
-    g:setLoc(0, self.height - (self.rowheight * i) + self.spacing + self.pixel_offset)
+    local y = self.height - (self.rowheight * i) + self.spacing + self.pixel_offset
+    g:setLoc(0, y)
     if self.list and self.list[j] then
       g.item = self.list[j]
       self.displayfunc(g, self.scratch[i], self.list[j], self.itemwidth, self.itemheight)

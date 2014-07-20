@@ -3464,7 +3464,16 @@ function TouchHandler:getTouchableProp(e)
     for i = #props, 1, -1 do
         local prop = props[i]
         if prop:getAttr(MOAIProp.ATTR_VISIBLE) > 0 then
-            return prop
+	    local scissor = prop:getScissorRect()
+	    if scissor then
+	      local sx, sy = scissor:worldToModel(e.wx, e.wy)
+	      local xMin, yMin, xMax, yMax = scissor:getRect()
+	      if sx > xMin and sx < xMax and sy > yMin and sy < yMax then
+	        return prop
+	      end
+	    else
+              return prop
+	    end
         end
     end
 end

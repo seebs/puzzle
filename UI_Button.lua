@@ -49,7 +49,7 @@ end
 
 function UI_Button:event(e)
   local for_me = e.active_prop and self.props[e.active_prop] or false
-  -- printf("UI_Button: event, type %s, active_prop %s, index %d, x/y %d/%d, tapCount %d", e.type, tostring(e.active_prop), e.idx, e.x, e.y, e.tapCount)
+  printf("UI_Button: event, type %s, active_prop %s, index %d, x/y %d/%d, tapCount %d", e.type, tostring(e.active_prop), e.idx, e.x, e.y, e.tapCount)
   if e.type == 'touchDown' then
     -- look clicked
     if for_me then

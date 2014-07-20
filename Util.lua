@@ -20,12 +20,22 @@ end
 
 local printf = Util.printf
 
-local passthrough = { 'setLoc', 'moveLoc', 'seekLoc', 'setRot', 'seekRot', 'moveRot', 'setParent', 'setLayer', 'setVisible', 'setScl', 'moveScl', 'seekScl', 'setColor', 'moveColor', 'seekColor' }
+local passverbs = { 'get', 'set', 'move', 'seek' }
+local passnouns = { 'Loc', 'Rot', 'Scl', 'Color' }
+local passthrough = { 'setParent', 'setLayer', 'setVisible' }
 function Util.makepassthrough(memberhash, target)
   for i = 1, #passthrough do
     local name = passthrough[i]
     if not memberhash[name] then
       memberhash[name] = function(self, ...) return self[target][name](self[target], ...) end
+    end
+  end
+  for i = 1, #passverbs do
+    for j = 1, #passnouns do
+      local name = passverbs[i] .. passnouns[j]
+      if not memberhash[name] then
+        memberhash[name] = function(self, ...) return self[target][name](self[target], ...) end
+      end
     end
   end
 end
