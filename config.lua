@@ -18,6 +18,10 @@ flower.DEFAULT_SCREEN_HEIGHT = screenHeight
 
 -- Set the scale of the Viewport
 flower.DEFAULT_VIEWPORT_SCALE = viewScale
+flower.DEFAULT_VIEWPORT_YFLIP = true
+
+-- I prefer alpha=0 to be invisible
+flower.DEFAULT_BLEND_MODE = { MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE_MINUS_SRC_ALPHA }
 
 -- High quality rendering of Label
 -- When enabled, it may take a long time to display the label.

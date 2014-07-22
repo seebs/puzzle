@@ -28,27 +28,43 @@ local max = math.max
 
 local stylecache = {}
 
-local function color_style(style, color)
+local function color_style(style, color, g, b)
   local font = style:getFont()
   local size = style:getSize()
   local scale = style:getScale()
+  local r = 0
   stylecache[font] = stylecache[font] or {}
   stylecache[font][size] = stylecache[font][size] or {}
   stylecache[font][size][scale] = stylecache[font][size][scale] or {}
   local tab = stylecache[font][size][scale]
-  if type(color) == 'string' then
-    local found = false
-    for i = 1, #Rainbow.data do
-      if Rainbow.data[i].name == color then
-        color = i
-	found = true
-	break
+  if g then
+    r = color
+    color = sprintf("#%02x%02x%02x", r, g, b)
+  else
+    g, b = 0, 0
+    if type(color) == 'number' then
+      r, g, b = unpack(Rainbow.hues[color] or { 0, 0, 0 })
+    elseif type(color) == 'string' then
+      if color:sub(1, 1) == '#' then
+        r = tonumber(string.sub(color, 2, 3), 16)
+        g = tonumber(string.sub(color, 4, 5), 16)
+        b = tonumber(string.sub(color, 6, 7), 16)
+      else
+        local found = false
+        for i = 1, #Rainbow.data do
+          if Rainbow.data[i].name == color then
+            r, g, b = unpack(Rainbow.hues[i])
+	    color = i
+	    found = true
+	    break
+          end
+        end
+        -- invalid color
+        if not found then
+          printf("Invalid color: %s", color)
+          return nil
+        end
       end
-    end
-    -- invalid color
-    if not found then
-      printf("Invalid color: %s", color)
-      return nil
     end
   end
   if not tab[color] then
@@ -56,7 +72,6 @@ local function color_style(style, color)
     s:setFont(font)
     s:setSize(size)
     s:setScale(scale)
-    local r, g, b = unpack(Rainbow.hues[color])
     s:setColor(r / 255, g / 255, b / 255, 1)
     -- printf("New style for font size %d, scale %.1f, color %s, %.2f %.2f %.2f",
     --   size, scale, Rainbow.data[color].name, r / 255, g / 255, b / 255)
@@ -70,6 +85,7 @@ end
 
 function Rainbow.color_styles(textbox)
   local base = textbox:getStyle()
+  textbox:setStyle(color_style(base, '#000000'))
   for i = 1, 6 do
     textbox:setStyle(Rainbow.data[i].name, color_style(base, i))
   end

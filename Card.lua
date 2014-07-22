@@ -79,9 +79,14 @@ function Card:hide()
   MOAICoroutine.blockOnAction(self.group:seekColor(1, 1, 1, 0, 0.3))
 end
 
+function Card:setVisible(flag)
+  self.group:setColor(1, 1, 1, 1)
+end
+
 Card.memberhash = {
   display_element = Card.display_element,
   display_formation = Card.display_formation,
+  setVisible = Card.setVisible,
 }
 
 Util.makepassthrough(Card.memberhash, 'group')

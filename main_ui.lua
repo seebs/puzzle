@@ -38,6 +38,12 @@ function main_ui.onCreate()
     main_ui.ui.board_button.group:setLayer(main_ui.ui.layer)
   end
 
+  local c = Card.new(main_ui.ui.layer, "foo", "b<red>a</>r")
+  -- local e = Element.new(1)
+  -- c:display_element(e)
+  c:setLoc(130, 250)
+  c:setVisible(true)
+
   if not main_ui.ui.list_button then
     main_ui.ui.list_button = UI_Button.new("list", 150, 35, function() main_ui.show_overlay('element_list') end)
     main_ui.ui.list_button.group:setLoc(100, 10)

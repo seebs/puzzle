@@ -11,8 +11,8 @@ Loose ideas:
 	either give XP to an element (more to a fantasy-aligned one), *or* produce
 	healing or damage or something if you use it while in a dungeon. Obviously
 	in the long run you benefit more overall from using them to advance
-	things, but in some cases you might get more benefit right now from levelling
-	something.
+	things, but in some cases you might get more benefit right now from
+	completing a given dungeon.
 
 	Tropes/Pacing:
 		Tropes cost a resource (pacing, aka mana). Initial cost is usually
@@ -31,6 +31,9 @@ Loose ideas:
 
 		If you generate pacing and are capped, your trope decays in cost
 		an extra point.
+
+		Consumable tropes don't participate in this, except maybe they reset
+		the costs of other tropes.
 
 	Health: Maybe you should get temp hit points from enemies or something?
 
@@ -60,6 +63,9 @@ Loose ideas:
 		Collaboration: 2 authors, 1 protagonist/character (2 trait)
 		Mary Sue: Single author/protagonist (3 trait), plus bit players
 
+		Some formations should have guest slots which some characters can
+		populate using a trope. (Chandler's Law: Add a guy with a gun.)
+
 	Stats:
 		attack (genre)
 		defense (genre)
@@ -75,6 +81,12 @@ Loose ideas:
 		protagonist traits (up to 3)
 		antagonist traits (up to 2)
 		author trait (?)
+
+	Recovery:
+		There's no heart orbs. Instead, recovery happens through passives, or
+		you get some recovery from characters not-activated by a match. Need to
+		mess with that more.
+
 	Party:
 		"cast"
 		-- elements slots with flags on them

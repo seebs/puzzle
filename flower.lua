@@ -12,7 +12,6 @@
 
 -- module
 local M = {}
-local printf = Util.printf
 
 -- Classes
 local table
@@ -81,6 +80,12 @@ M.DEFAULT_SCREEN_HEIGHT = MOAIEnvironment.verticalResolution or 480
 --- default scale of the viewport
 M.DEFAULT_VIEWPORT_SCALE = 1
 
+--- default y behavior; set to true to have y=0 be the bottom of the screen
+M.DEFAULT_VIEWPORT_YFLIP = false
+
+--- default blending mode for images
+M.DEFAULT_BLEND_MODE = { }
+
 ----------------------------------------------------------------------------------------------------
 -- Public functions
 ----------------------------------------------------------------------------------------------------
@@ -122,8 +127,13 @@ function M.updateDisplaySize(width, height, scale)
 
     M.viewport = M.viewport or MOAIViewport.new()
     M.viewport:setSize(M.screenWidth, M.screenHeight)
-    M.viewport:setScale(M.viewWidth, M.viewHeight)
-    M.viewport:setOffset(-1, -1)
+    if M.DEFAULT_VIEWPORT_YFLIP then
+      M.viewport:setScale(M.viewWidth, M.viewHeight)
+      M.viewport:setOffset(-1, -1)
+    else
+      M.viewport:setScale(M.viewWidth, -M.viewHeight)
+      M.viewport:setOffset(-1, 1)
+    end
 end
 
 ---
@@ -1609,10 +1619,13 @@ end
 -- @param flipY (Optional)flipY
 -- @return deck
 function DeckMgr:createImageDeck(width, height, flipX, flipY)
+    if M.DEFAULT_VIEWPORT_YFLIP then
+      flipY = not flipY
+    end
     local u0 = flipX and 1 or 0
-    local v0 = flipY and 0 or 1
+    local v0 = flipY and 1 or 0
     local u1 = flipX and 0 or 1
-    local v1 = flipY and 1 or 0
+    local v1 = flipY and 0 or 1
     local deck = MOAIGfxQuad2D.new()
     deck:setUVRect(u0, v0, u1, v1)
     deck:setRect(0, 0, width, height)
@@ -1786,7 +1799,12 @@ function DeckMgr:createNineImageDeck(fileName)
     local stretchColumns = self:_createStretchRowsOrColumns(image, false)
     local contentPadding = self:_getNineImageContentPadding(image)
     local texture = Resources.getTexture(filePath)
-    local uvRect = {1 / imageWidth, (imageHeight - 1) / imageHeight, (imageWidth - 1) / imageWidth, 1 / imageHeight}
+    local uvRect
+    if M.DEFAULT_VIEWPORT_YFLIP then
+      uvRect = {1 / imageWidth, 1 / imageHeight, (imageWidth - 1) / imageWidth, (imageHeight - 1) / imageHeight}
+    else
+      uvRect = {1 / imageWidth, (imageHeight - 1) / imageHeight, (imageWidth - 1) / imageWidth, 1 / imageHeight}
+    end
 
     local deck = MOAIStretchPatch2D.new()
     deck.imageWidth = imageWidth
@@ -2202,9 +2220,9 @@ function Group:addChild(child)
             self.layer:insertProp(child)
         end
 
-	if self.scissor and child.setScissorRect then
-	  child:setScissorRect(self.scissor)
-	end
+        if self.scissor and child.setScissorRect then
+          child:setScissorRect(self.scissor)
+        end
 
         return true
     end
@@ -2225,9 +2243,9 @@ function Group:removeChild(child)
             self.layer:removeProp(child)
         end
 
-	if self.scissor and child.setScissorRect then
-	  child:setScissorRect(nil)
-	end
+        if self.scissor and child.setScissorRect then
+          child:setScissorRect(nil)
+        end
 
         return true
     end
@@ -2643,7 +2661,7 @@ function Image:init(texture, width, height, flipX, flipY)
 
     self:setTexture(texture)
 
-    self:setBlendMode(MOAIProp2D.GL_SRC_ALPHA, MOAIProp2D.GL_ONE_MINUS_SRC_ALPHA)
+    self:setBlendMode(unpack(M.DEFAULT_BLEND_MODE))
 
     if width or height then
         local tw, th = self.texture:getSize()
@@ -3129,8 +3147,6 @@ Label.HIGH_QUALITY_ENABLED = false
 -- @param height Height
 -- @param font (option) Font path, or Font object
 -- @param textSize (option) TextSize
-local stylecache = {}
-
 function Label:init(text, width, height, font, textSize)
     DisplayObject.init(self)
 
@@ -3139,22 +3155,13 @@ function Label:init(text, width, height, font, textSize)
     self.textSize = textSize or Font.DEFAULT_POINTS
 
     font = Resources.getFont(font, nil, self.textSize * self.contentScale)
-    stylecache[font] = stylecache[font] or {}
-    if not stylecache[font][self.textSize] then
-      local s = MOAITextStyle.new()
-      s:setFont(font)
-      s:setSize(self.textSize)
-      s:setColor(0, 0, 0, 1)
-      stylecache[font][self.textSize] = s
-    end
-    self:setStyle(stylecache[font][self.textSize])
 
     self:setFont(font)
-    self:setYFlip(true)
     self:setRect(0, 0, width or 10, height or 10)
     self:setTextSize(self.textSize)
     self:setTextScale(1 / self.contentScale)
     self:setString(text)
+    self:setYFlip(M.DEFAULT_VIEWPORT_YFLIP)
 
     if not width or not height then
         self:fitSize(#text)
@@ -3429,6 +3436,10 @@ function TouchHandler:onTouch(e)
     -- touch event
     local e2 = table.copy(e, self.TOUCH_EVENT)
 
+    -- the active prop is the one reported from getTouchableProp,
+    -- the "other" prop is the prop associated originally with this touch
+    -- index. Used to make it easier to distinguish whether a touchUp
+    -- event should be counted as a "click".
     e2.active_prop = prop
     e2.other_prop = prop2
     -- dispatch event
@@ -3447,9 +3458,9 @@ function TouchHandler:onTouch(e)
     -- reset properties to free resources used in cached event
     e2.data = nil
     e2.prop = nil
+    e2.target = nil
     e2.active_prop = nil
     e2.other_prop = nil
-    e2.target = nil
     e2:setListener(nil, nil)
 end
 
@@ -3464,16 +3475,17 @@ function TouchHandler:getTouchableProp(e)
     for i = #props, 1, -1 do
         local prop = props[i]
         if prop:getAttr(MOAIProp.ATTR_VISIBLE) > 0 then
-	    local scissor = prop:getScissorRect()
-	    if scissor then
-	      local sx, sy = scissor:worldToModel(e.wx, e.wy)
-	      local xMin, yMin, xMax, yMax = scissor:getRect()
-	      if sx > xMin and sx < xMax and sy > yMin and sy < yMax then
-	        return prop
-	      end
-	    else
+	    -- getScissorRect is part of a recent submitted change.
+            local scissor = prop.getScissorRect and prop:getScissorRect()
+            if scissor then
+              local sx, sy = scissor:worldToModel(e.wx, e.wy)
+              local xMin, yMin, xMax, yMax = scissor:getRect()
+              if sx > xMin and sx < xMax and sy > yMin and sy < yMax then
+                return prop
+              end
+            else
               return prop
-	    end
+            end
         end
     end
 end
