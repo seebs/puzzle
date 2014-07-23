@@ -261,11 +261,11 @@ function UI_Scrolllist:setScroll(position)
   self.total_rows = ceil(#self.list / self.items_per_row)
   self.total_height = (self.total_rows * self.rowheight) - self.spacing
   self.max_position = self.total_height - self.inner_height
-  if position < 0 then
-    position = 0
-  end
   if position > self.max_position then
     position = self.max_position
+  end
+  if position < 0 then
+    position = 0
   end
   if position == self.position then
     return false
@@ -273,8 +273,8 @@ function UI_Scrolllist:setScroll(position)
   self.position = position
   self.row_offset = floor(self.position / self.rowheight)
   self.pixel_offset = self.position - (self.row_offset * self.rowheight)
-  -- printf("setScroll: position %d/%d, row_offset %d, pixel_offset %d",
-  --   position, max, self.row_offset, self.pixel_offset)
+  printf("setScroll: position %d/%d, row_offset %d, pixel_offset %d",
+    self.position, self.max_position, self.row_offset, self.pixel_offset)
   self:display()
   return true
 end

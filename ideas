@@ -83,9 +83,8 @@ Loose ideas:
 		author trait (?)
 
 	Recovery:
-		There's no heart orbs. Instead, recovery happens through passives, or
-		you get some recovery from characters not-activated by a match. Need to
-		mess with that more.
+		There's no heart orbs. Instead, recovery happens through passives or
+		tropes. But the default is, no recovery.
 
 	Party:
 		"cast"

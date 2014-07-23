@@ -51,8 +51,15 @@ function Stat:inspect(name)
 end
 
 function Stat:value(level)
-  level = level or self.level
-  return ((self.base_rank + self.tier - 1) * 100) + ((self.progression_rank + self.tier) * (level - 1)) + self.fixed_value
+  level = (level or self.level) - 1
+  local base = (self.base_rank + self.tier - 1)
+  local progression
+  if self.progression_rank == 0 then
+    progression = 0
+  else
+    progression = self.progression_rank + self.tier
+  end
+  return (base * 100) + (progression * level) + self.fixed_value
 end
 
 Stat.memberhash = {

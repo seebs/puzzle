@@ -2,6 +2,9 @@
 local printf = Util.printf
 local sprintf = Util.sprintf
 
+local sqrt = math.sqrt
+local floor = math.floor
+
 local Element = {}
 
 Element.internal = {
@@ -47,8 +50,25 @@ end
 function Element.new(id)
   local e = Util.deepcopy(Element.internal[id])
   Util.traverse(e.statistics, make_stat)
+  e.id = id
+  e.xp = 0
+  e.level = 1
   setmetatable(e, {__index = Element.memberhash})
   return e
+end
+
+function Element:gain_experience(xp)
+  self.xp = self.xp + xp
+  return self:maybe_level()
+end
+
+function Element:maybe_level()
+  local oldlevel = self.level
+  self.level = floor(sqrt(self.xp / 1000)) + 1
+
+  if self.level > oldlevel then
+    return true
+  end
 end
 
 function Element:stats(flags)
@@ -118,7 +138,9 @@ end
 
 Element.memberhash = {
   stats = Element.stats,
-  inspect = Element.inspect
+  gain_experience = Element.gain_experience,
+  inspect = Element.inspect,
+  maybe_level = Element.maybe_level
 }
 
 return Element

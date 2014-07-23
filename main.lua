@@ -34,7 +34,9 @@ local Rainbow = Rainbow
 local Settings = Settings
 local Util = Util
 
+-- *not* local, mind.
 player = Player.new()
+player:save()
 
 flower.openWindow('Tropes')
 flower.openScene('main_ui')

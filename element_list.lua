@@ -16,31 +16,23 @@ local sprintf = Util.sprintf
 
 local element_list = {}
 
-local list = {
-  "3x5.acorn",
-  "3x5.png",
-  "Board.lua",
-  "Card.lua",
-  "Element.lua",
-  "Flag.lua",
-  "Formation.lua",
-  "Genre.lua",
-  "Hexes.lua",
-  "Input.lua",
-  "Player.lua",
-}
-
 function element_list.makeitem(g, o, w, h)
   o.r = flower.Rect(w, h)
   o.r:setColor(1, .7, .7)
   g:addChild(o.r)
-  o.l = flower.Label("", w, h)
-  o.l:setLoc(10, 0)
-  g:addChild(o.l)
+  o.name = flower.Label("", w - 20, h)
+  Rainbow.color_styles(o.name)
+  o.name:setLoc(10, 0)
+  g:addChild(o.name)
+  o.level = flower.Label("", 20, h, nil, 12)
+  Rainbow.color_styles(o.level)
+  o.level:setLoc(w - 20, 0)
+  g:addChild(o.level)
 end
 
 function element_list.displayitem(g, o, i, w, h)
-  o.l:setString(i)
+  o.name:setString(sprintf("<%s>%s</>", Genre.color_name(i.genre), i.name))
+  o.level:setString(sprintf("%d", i.level or 1))
 end
 
 function element_list.clickitem(item)
@@ -67,7 +59,7 @@ function element_list.onCreate()
   printf("back.group: %s", tostring(element_list.ui.back_button.group))
 
   if not element_list.ui.scrolllist then
-    element_list.ui.scrolllist = UI_Scrolllist.new(300, 200, 130, 40, element_list.makeitem, element_list.displayitem, element_list.clickitem, list)
+    element_list.ui.scrolllist = UI_Scrolllist.new(300, 200, 130, 40, element_list.makeitem, element_list.displayitem, element_list.clickitem, player.elements)
   end
   element_list.ui.scrolllist:setLayer(element_list.ui.layer)
   element_list.ui.scrolllist:setLoc(20, 100)
