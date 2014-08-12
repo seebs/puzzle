@@ -22,7 +22,7 @@ local printf = Util.printf
 
 local passverbs = { 'get', 'set', 'move', 'seek' }
 local passnouns = { 'Loc', 'Rot', 'Scl', 'Color' }
-local passthrough = { 'setParent', 'setLayer', 'setVisible' }
+local passthrough = { 'setParent', 'setLayer', 'setVisible', 'setPriority', 'setScissorRect' }
 function Util.makepassthrough(memberhash, target)
   for i = 1, #passthrough do
     local name = passthrough[i]
