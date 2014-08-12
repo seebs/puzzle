@@ -17,22 +17,31 @@ local sprintf = Util.sprintf
 local element_list = {}
 
 function element_list.makeitem(g, o, w, h)
-  o.r = flower.Rect(w, h)
-  o.r:setColor(1, .7, .7)
-  g:addChild(o.r)
+  o.bg = flower.NineImage("ninepatch.9.png", w, h)
+  o.bg:setPriority(-10)
+  g:addChild(o.bg)
   o.name = flower.Label("", w - 20, h)
   Rainbow.color_styles(o.name)
   o.name:setLoc(10, 0)
   g:addChild(o.name)
+  o.name:setPriority(1)
   o.level = flower.Label("", 20, h, nil, 12)
   Rainbow.color_styles(o.level)
-  o.level:setLoc(w - 20, 0)
+  o.level:setLoc(10, -25)
   g:addChild(o.level)
+  o.level:setPriority(1)
+
+  o.portrait = Portrait.new()
+  g:addChild(o.portrait.group)
+  o.portrait:setVisible(false)
+  o.portrait:setScl(0.6)
+  o.portrait:setLoc(w - 30, 50)
 end
 
 function element_list.displayitem(g, o, i, w, h)
   o.name:setString(sprintf("<%s>%s</>", Genre.color_name(i.genre), i.name))
   o.level:setString(sprintf("%d", i.level or 1))
+  o.portrait:display_element(i)
 end
 
 function element_list.clickitem(item)
@@ -56,15 +65,12 @@ function element_list.onCreate()
     element_list.ui.back_button:setLoc(10, 10)
     element_list.ui.back_button:setLayer(element_list.ui.layer)
   end
-  printf("back.group: %s", tostring(element_list.ui.back_button.group))
 
   if not element_list.ui.scrolllist then
-    element_list.ui.scrolllist = UI_Scrolllist.new(300, 200, 130, 40, element_list.makeitem, element_list.displayitem, element_list.clickitem, player.elements)
+    element_list.ui.scrolllist = UI_Scrolllist.new(748, 350, 300, 120, element_list.makeitem, element_list.displayitem, element_list.clickitem, player.elements)
   end
   element_list.ui.scrolllist:setLayer(element_list.ui.layer)
-  element_list.ui.scrolllist:setLoc(20, 100)
-  printf("scrollist.group: %s", tostring(element_list.ui.scrolllist.group))
-
+  element_list.ui.scrolllist:setLoc(10, 100)
 end
 
 function element_list.onOpen()
