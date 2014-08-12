@@ -7,7 +7,7 @@ local M = {}
 
 local screenWidth = MOAIEnvironment.horizontalResolution or 768
 local screenHeight = MOAIEnvironment.verticalResolution or 1024
-local viewScale = math.floor(math.max(math.min(screenWidth / 320, screenHeight / 480), 1))
+local viewScale = math.floor(math.max(math.min(screenWidth / 768, screenHeight / 1024), 1))
 
 -- Resources setting
 flower.Resources.addResourceDirectory("assets")
