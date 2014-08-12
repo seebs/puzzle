@@ -59,7 +59,9 @@ function UI_Button:event(e)
   elseif e.type == 'touchCancel' then
     self:display_down(false)
   elseif e.type == 'touchMove' then
-    self:display_down(for_me)
+    if self.down or e.other_prop == e.active_prop then
+      self:display_down(for_me)
+    end
   elseif e.type == 'touchUp' then
     if self.down and for_me then
       self.callback()
