@@ -29,6 +29,7 @@ UI_Button = require 'UI_Button'
 Card = require 'Card'
 UI_Scrolllist = require 'UI_Scrolllist'
 UI_Formation = require 'UI_Formation'
+UI_Tabs = require 'UI_Tabs'
 
 local Rainbow = Rainbow
 local Settings = Settings
