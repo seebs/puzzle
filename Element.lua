@@ -33,7 +33,7 @@ Element.internal = {
         inspiration = 100,
       }
     }
-  }
+  },
 }
 
 Element.statistics = { 'inspiration', 'wordcount' }

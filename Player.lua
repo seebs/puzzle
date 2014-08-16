@@ -7,7 +7,7 @@ function Player.new()
   local p = {}
   setmetatable(p, {__index = Player.memberhash})
   p:load()
-  p.elements = p.elements or { Element.new(1), Element.new(2), Element.new(1), Element.new(2), Element.new(1), Element.new(1) }
+  p.elements = p.elements or { Element.new(1) }
   p.tropes = p.tropes or {}
   p.author = p.author or { level = 1, xp = 0 }
   return p
