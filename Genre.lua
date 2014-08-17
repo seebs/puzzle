@@ -64,6 +64,10 @@ function Genre.color_name(g)
   return Rainbow.name(Genre.colors[g])
 end
 
+function Genre.genre(i)
+  return Genre.genres[i]
+end
+
 function Genre.list(value)
   local t = {}
   -- "false" would be okay, though.

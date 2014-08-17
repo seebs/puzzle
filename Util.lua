@@ -194,7 +194,7 @@ function Util.dump(obj, name, prefix, seen)
   name = name or 'object'
   prefix = prefix or ''
   if type(obj) == 'table' then
-    if #prefix > 4 then
+    if #prefix > 6 then
       seen[obj] = true
       printf("%s%s = { [%s, too deep] } ", prefix, name, tostring(obj))
       return

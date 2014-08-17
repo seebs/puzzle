@@ -10,6 +10,7 @@ function Player.new()
   p.elements = p.elements or { Element.new(1) }
   p.tropes = p.tropes or {}
   p.author = p.author or { level = 1, xp = 0 }
+  p.formation = Formation.new('anecdote', p.elements[1])
   return p
 end
 

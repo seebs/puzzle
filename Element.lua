@@ -47,14 +47,41 @@ local function make_stat(tab, key)
   end
 end
 
-function Element.new(id)
-  local e = Util.deepcopy(Element.internal[id])
+function Element.new(spec, flags)
+  if type(spec) == 'number' then
+    spec = { id = spec, level = 1, flags = flags or 'character' }
+  elseif type(spec) == 'table' then
+    spec.flags = spec.flags or 'character'
+  end
+  local e = Util.deepcopy(Element.internal[spec.id])
   Util.traverse(e.statistics, make_stat)
-  e.id = id
+  e.id = spec.id
+  e.flags = spec.flags
   e.xp = 0
-  e.level = 1
+  e.level = spec.level or 1
   setmetatable(e, {__index = Element.memberhash})
+  -- default values?
+  local stats = e:stats()
+  e.status = {}
+  for i = 1, #Element.statistics do
+    local s = Element.statistics[i]
+    if stats[s].total and stats[s].total > 0 then
+      e.status[s] = stats[s].total
+    end
+  end
   return e
+end
+
+function Element:set_flags(flags)
+  self.flags = flags
+  local stats = self:stats()
+  self.status = {}
+  for i = 1, #Element.statistics do
+    local s = Element.statistics[i]
+    if stats[s].total and stats[s].total > 0 then
+      self.status[s] = stats[s].total
+    end
+  end
 end
 
 function Element:gain_experience(xp)
@@ -76,7 +103,7 @@ function Element:stats(flags)
   for i = 1, #Element.statistics do
     stats[Element.statistics[i]] = Genre.list(0)
   end
-  flags = Util.flags(flags or "")
+  flags = Util.flags(flags or self.flags or "")
   if self.statistics then
     for flag, details in pairs(self.statistics) do
       if flags[flag] then
@@ -140,6 +167,7 @@ Element.memberhash = {
   stats = Element.stats,
   gain_experience = Element.gain_experience,
   inspect = Element.inspect,
+  set_flags = Element.set_flags,
   maybe_level = Element.maybe_level
 }
 

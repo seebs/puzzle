@@ -19,6 +19,7 @@ Trope = require 'Trope'
 Element = require 'Element'
 Formation = require 'Formation'
 Player = require 'Player'
+Dungeon = require 'Dungeon'
 
 -- base UI elements
 Portrait = require 'Portrait'

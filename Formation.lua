@@ -21,13 +21,17 @@ function Formation.new(type, ...)
   setmetatable(f, {__index = Formation.memberhash})
   for i = 1, #elements do
     if f.slots[i] then
-      f.slots[i].element = Element.new(elements[i])
+      f.slots[i].element = elements[i]
+      f.slots[i].element:set_flags(f.slots[i].flags)
     end
   end
+  f.stats = f:compute_stats()
+  f.inspiration = f.stats.inspiration.total
+  f.max_inspiration = f.stats.inspiration.total
   return f
 end
 
-function Formation:stats()
+function Formation:compute_stats()
   local totals = {}
   for _, slot in pairs(self.slots) do
     if slot.element then
@@ -40,11 +44,14 @@ function Formation:stats()
       end
     end
   end
+  for k, v in pairs(totals) do
+    Util.tsum(v)
+  end
   return totals
 end
 
 function Formation:inspect()
-  local stats = self:stats()
+  printf("Total inspiration: %d/%d", self.inspiration, self.max_inspiration)
   printf("Elements:")
   for i = 1, #self.slots do
     if self.slots[i].element then
@@ -54,7 +61,7 @@ function Formation:inspect()
     end
   end
   printf("Total stats:")
-  for stat, details in pairs(stats) do
+  for stat, details in pairs(self.stats) do
     printf("  %s:", stat)
     for genre, value in pairs(details) do
       printf("    %s: %d", genre, value)
@@ -63,7 +70,7 @@ function Formation:inspect()
 end
 
 Formation.memberhash = {
-  stats = Formation.stats,
+  compute_stats = Formation.compute_stats,
   inspect = Formation.inspect,
 }
 

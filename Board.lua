@@ -438,20 +438,15 @@ function Board.new(scene, args)
   bd.layer:insertProp(bd.border_prop)
   bd.border_prop:setAttrLink(MOAITransform.INHERIT_LOC, bd.texture_prop, MOAIProp2D.TRANSFORM_TRAIT)
 
-  local foo = flower.Label("Foo", 140, 40, nil, 15)
-  foo:setColor(1, 1, 1)
-  foo:setPriority(30)
-  bd.layer:insertProp(foo)
-
   bd.combo_meters = {}
   for i = 1, 6 do
-    bd.combo_meters[i] = flower.Label("Match:", 140, 30, nil, 12)
+    bd.combo_meters[i] = flower.Label("Match:", 140, 30, nil, 20)
     bd.combo_meters[i]:setPriority(11)
     Rainbow.color_styles(bd.combo_meters[i])
     bd.combo_meters[i]:setStyle(bd.combo_meters[i]:getStyle(Rainbow.name(i)))
     bd.combo_meters[i]:setYFlip(true)
     bd.combo_meters[i]:setAlignment(MOAITextBox.LEFT_JUSTIFY, MOAITextBox.CENTER_JUSTIFY)
-    bd.combo_meters[i]:setLoc(3 - bd.offsets.x, bd.upper_right.y - (12 * (i - 1)))
+    bd.combo_meters[i]:setLoc(3 - bd.offsets.x, bd.upper_right.y - (20 * (i - 1)))
     bd.layer:insertProp(bd.combo_meters[i])
     bd.combo_meters[i]:setAttrLink(MOAITransform.INHERIT_LOC, bd.texture_prop, MOAIProp2D.TRANSFORM_TRAIT)
   end

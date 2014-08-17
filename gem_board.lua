@@ -1,4 +1,4 @@
-local board_scene = {}
+local gem_board = {}
 
 local pi = math.pi
 local fmod = math.fmod
@@ -15,6 +15,7 @@ local ceil = math.ceil
 local abs = math.abs
 local printf = Util.printf
 local sprintf = Util.sprintf
+local tremove = table.remove
 
 local board
 local input_handler
@@ -22,7 +23,7 @@ local accepting_input = false
 local next_action = nil
 local keep_running = false
 
-function board_scene.logic_loop()
+function gem_board.logic_loop()
   accepting_input = true
   while keep_running do
     if next_action then
@@ -30,31 +31,74 @@ function board_scene.logic_loop()
     end
     coroutine.yield()
   end
+  flower.closeScene({animation = 'fade'})
   return
 end
 
-function board_scene.onCreate()
-  -- printf("onCreate: board is %s.", tostring(board))
-  if not board then
-    local approx_size = flower.viewWidth / 8
-    board = Board.new(board_scene.scene, { texture = 1, color_multiplier = 1, rows = 7, columns = 7, size = { x = approx_size } })
-  else
-    board:populate()
+function gem_board.check_monsters()
+  if gem_board.monsters then
+    local remove = {}
+    printf("Checking monsters:")
+    for i = 1, #gem_board.monsters do
+      local mon = gem_board.monsters[i]
+      printf("%d: %s [%d]", i, mon.name, mon.status.inspiration)
+      if mon.status.inspiration <= 0 then
+        remove[#remove + 1] = i
+      end
+    end
+    for i = #remove, 1, -1 do
+      tremove(gem_board.monsters, remove[i])
+    end
+  end
+  if not gem_board.monsters or #gem_board.monsters < 1 then
+    gem_board.room_number = gem_board.room_number + 1
+    gem_board.room = gem_board.dungeon.rooms[gem_board.room_number]
+    if not gem_board.room then
+      gem_board.done()
+      return
+    end
+    gem_board.monsters = {}
+    for i = 1, #gem_board.room.monsters do
+      local e = Element.new(gem_board.room.monsters[i])
+      e.max_inspiration = e.status.inspiration
+      e.inspiration = e.status.inspiration
+      printf("Adding monster (%s, level %d, health %d)", e.name, e.level, e.inspiration)
+      gem_board.monsters[i] = e
+    end
   end
 end
 
-function board_scene.onOpen()
+function gem_board.done()
+  keep_running = false
+end
+
+function gem_board.onCreate()
+  -- printf("onCreate: board is %s.", tostring(board))
+  if not board then
+    local approx_size = flower.viewWidth / 8
+    board = Board.new(gem_board.scene, { texture = 1, color_multiplier = 1, rows = 7, columns = 7, size = { x = approx_size } })
+  else
+    board:populate()
+  end
+  gem_board.dungeon = Dungeon.new(1)
+  gem_board.room_number = 0
+end
+
+function gem_board.onOpen()
   flower.InputMgr:addEventListener('touchDown', input_handler)
   flower.InputMgr:addEventListener('touchUp', input_handler)
   flower.InputMgr:addEventListener('touchMove', input_handler)
   flower.InputMgr:addEventListener('mouseClick', input_handler)
   flower.InputMgr:addEventListener('mouseMove', input_handler)
   keep_running = true
-  board_scene.logic_coroutine = MOAICoroutine.new()
-  board_scene.logic_coroutine:run(board_scene.logic_loop)
+  gem_board.logic_coroutine = MOAICoroutine.new()
+  gem_board.logic_coroutine:run(gem_board.logic_loop)
+  -- initial setup: grab the first room
+  player.formation.inspiration = player.formation.max_inspiration
+  gem_board.check_monsters()
 end
 
-function board_scene.onClose()
+function gem_board.onClose()
   flower.InputMgr:removeEventListener('touchDown', input_handler)
   flower.InputMgr:removeEventListener('touchUp', input_handler)
   flower.InputMgr:removeEventListener('touchMove', input_handler)
@@ -80,27 +124,43 @@ local function handle_matches()
   -- printf("handle_matches")
   local results = board:find_and_process_matches()
   local total = 0
+  local combos = 0
+  local totals = Genre.list(0)
   for i = 1, 6 do
-    local subtotal = 0
     if results[i] then
+      local g = Genre.genre(i)
+      local subtotal = 0
+      combos = combos + #results[i]
       for j = 1, #results[i] do
         subtotal = subtotal + results[i][j]
       end
+      totals[g] = subtotal
       total = total + subtotal
     end
   end
-  if total > 15 then
-    flower.closeScene({animation = 'fade'})
-    return nil
+  local damage = Genre.list(0)
+  for g, v in pairs(totals) do
+    local wc = player.formation.stats.wordcount[g] or 0
+    damage[g] = wc * v / 3
   end
-  if false then
+  if true then
+    printf("Total %d combo.", combos)
     for i = 1, 6 do
-      if results[i] then
-        printf("Color %d: %s", i, table.concat(results[i], ", "))
+      local g = Genre.genre(i)
+      if damage[g] then
+        printf("%s: %d", g, damage[g])
+	if gem_board.monsters and gem_board.monsters[1] then
+	  gem_board.monsters[1].inspiration = gem_board.monsters[1].inspiration - damage[g]
+	  if gem_board.monsters[1].inspiration < 0 then
+	    printf("Monster killed.")
+	    tremove(gem_board.monsters, 1)
+	  end
+	end
       end
     end
     printf("returning resume_input")
   end
+  gem_board.check_monsters()
   return resume_input
 end
 
@@ -249,4 +309,4 @@ input_handler = function(e)
   end
 end
 
-return board_scene
+return gem_board
