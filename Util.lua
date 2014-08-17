@@ -73,7 +73,7 @@ function Util.flags(obj)
 end
 
 -- iterate over a table
-function Util.traverse(tab, func, seen)
+function Util.traverse(tab, func, seen, ...)
   if seen and seen[tab] then
     return
   end
@@ -81,9 +81,9 @@ function Util.traverse(tab, func, seen)
   seen[tab] = true
   for k, v in pairs(tab) do
     if type(v) == 'table' then
-      Util.traverse(v, func, seen)
+      Util.traverse(v, func, seen, ...)
     else
-      func(tab, k)
+      func(tab, k, ...)
     end
   end
 end

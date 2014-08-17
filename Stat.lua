@@ -21,10 +21,21 @@ local conv = {
 	[6] = 'S',
 }
 
+local stat_scales = {
+	inspiration = 5,
+	wordcount = 1,
+}
+
+local base_scale = 20
+local progression_scale = 1
+
 setmetatable(conv, {__index = function() return 0 end})
 
+function Stat.conv(x)
+  return conv[x]
+end
 -- 
-function Stat.new(rank, fixed_value, tier, level)
+function Stat.new(rank, fixed_value, tier, scale)
   local base_rank, progression_rank, _
   if rank == nil then
     base_rank = 0
@@ -38,7 +49,7 @@ function Stat.new(rank, fixed_value, tier, level)
     base_rank = conv[base_rank]
     progression_rank = conv[progression_rank]
   end
-  local s = { fixed_value = fixed_value or 0, base_rank = base_rank, progression_rank = progression_rank, tier = tier or 1, level = level or 1 }
+  local s = { fixed_value = fixed_value or 0, base_rank = base_rank, progression_rank = progression_rank, tier = tier or 1, level = level or 1, scale = scale }
   setmetatable(s, {__index = Stat.memberhash})
   return s
 end
@@ -51,15 +62,24 @@ function Stat:inspect(name)
 end
 
 function Stat:value(level)
-  level = (level or self.level) - 1
-  local base = (self.base_rank + self.tier - 1)
+  level = (level or self.level)
+  local base
+  if self.base_rank == 0 then
+    base = 0
+  else
+    base = self.base_rank + self.tier - 1
+  end
   local progression
   if self.progression_rank == 0 then
     progression = 0
   else
     progression = self.progression_rank + self.tier
   end
-  return (base * 100) + (progression * level) + self.fixed_value
+  local computed = (base * base_scale) + (progression * level * progression_scale)
+  if self.scale and stat_scales[self.scale] then
+    computed = computed * stat_scales[self.scale]
+  end
+  return computed + self.fixed_value
 end
 
 Stat.memberhash = {

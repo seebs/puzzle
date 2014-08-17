@@ -17,7 +17,7 @@ Element.internal = {
 	wordcount = 'D',
       },
       protagonist = {
-        wordcount = 'D',
+        wordcount = 'E',
       }
     }
   },
@@ -26,7 +26,7 @@ Element.internal = {
     genre = "fantasy",
     statistics = {
       character = {
-        inspiration = 20,
+        inspiration = 'D',
 	wordcount = 100,
       },
       antagonist = {
@@ -38,12 +38,12 @@ Element.internal = {
 
 Element.statistics = { 'inspiration', 'wordcount' }
 
-local function make_stat(tab, key)
+local function make_stat(tab, key, tier)
   local s = tab[key]
   if type(s) == 'number' then
-    tab[key] = Stat.new(nil, s)
+    tab[key] = Stat.new(nil, s, tier, key)
   elseif type(s) == 'string' then
-    tab[key] = Stat.new(s, nil)
+    tab[key] = Stat.new(s, nil, tier, key)
   end
 end
 
@@ -54,7 +54,7 @@ function Element.new(spec, flags)
     spec.flags = spec.flags or 'character'
   end
   local e = Util.deepcopy(Element.internal[spec.id])
-  Util.traverse(e.statistics, make_stat)
+  Util.traverse(e.statistics, make_stat, nil, e.tier or 1)
   e.id = spec.id
   e.flags = spec.flags
   e.xp = 0
@@ -111,11 +111,12 @@ function Element:stats(flags)
 	  if stats[stat] then
 	    if type(values) == 'table' then
 	      if values.value then
-	        stats[stat][self.genre] = stats[stat][self.genre] + values:value()
+	        stats[stat][self.genre] = stats[stat][self.genre] + values:value(self.level)
+		-- printf("stats[%s][implicit %s] = %s (%d)", stat, self.genre, tostring(values), values:value(self.level))
 	      else
 	        for genre, value in pairs(values) do
-		  printf("stats[%s][%s] = %s", stat, genre, tostring(value))
-	          stats[stat][genre] = stats[stat][genre] + value:value()
+	          stats[stat][genre] = stats[stat][genre] + value:value(self.level)
+		  -- printf("stats[%s][%s] = %s (%d)", stat, genre, tostring(value), value:value(self.level))
 	        end
 	      end
 	    else

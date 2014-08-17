@@ -41,7 +41,7 @@ function gem_board.check_monsters()
     printf("Checking monsters:")
     for i = 1, #gem_board.monsters do
       local mon = gem_board.monsters[i]
-      printf("%d: %s [%d]", i, mon.name, mon.status.inspiration)
+      printf("%d: %s [%d/%d]", i, mon.name, mon.inspiration, mon.max_inspiration)
       if mon.status.inspiration <= 0 then
         remove[#remove + 1] = i
       end
@@ -142,6 +142,7 @@ local function handle_matches()
   for g, v in pairs(totals) do
     local wc = player.formation.stats.wordcount[g] or 0
     damage[g] = wc * v / 3
+    damage[g] = damage[g] * (1 + (.1 * combos))
   end
   if true then
     printf("Total %d combo.", combos)
