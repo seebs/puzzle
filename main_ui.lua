@@ -31,7 +31,7 @@ function main_ui.onCreate()
     main_ui.ui.layer:setClearColor(0.3, 0.2, 0.1)
   end
   main_ui.scene:addChild(main_ui.ui.layer)
-
+  
   if not main_ui.ui.tabs then
     main_ui.ui.tabs = UI_Tabs.new(main_ui.ui.layer, nil, { {"board", "gem_board"}, {"list", "element_list"}})
   end

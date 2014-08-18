@@ -26,6 +26,7 @@ Portrait = require 'Portrait'
 Board = require 'Board'
 
 -- higher-level UI elements
+UI_Bar = require 'UI_Bar'
 UI_Button = require 'UI_Button'
 Card = require 'Card'
 UI_Scrolllist = require 'UI_Scrolllist'

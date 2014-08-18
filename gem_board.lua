@@ -64,6 +64,9 @@ function gem_board.check_monsters()
       e.inspiration = e.status.inspiration
       printf("Adding monster (%s, level %d, health %d)", e.name, e.level, e.inspiration)
       gem_board.monsters[i] = e
+      gem_board.ui.bars[i]:setVisible(true)
+      gem_board.ui.bars[i]:setColor(Genre.rgb(e.genre))
+      gem_board.ui.bars[i]:display_value(e.inspiration, 0, e.max_inspiration)
     end
   end
 end
@@ -79,6 +82,16 @@ function gem_board.onCreate()
     board = Board.new(gem_board.scene, { texture = 1, color_multiplier = 1, rows = 7, columns = 7, size = { x = approx_size } })
   else
     board:populate()
+  end
+  gem_board.ui = {}
+  gem_board.ui.layer = flower.Layer()
+  gem_board.scene:addChild(gem_board.ui.layer)
+  gem_board.ui.bars = {}
+  for i = 1, 5 do
+    gem_board.ui.bars[i] = UI_Bar.new()
+    gem_board.ui.bars[i]:setVisible(false)
+    gem_board.ui.bars[i]:setLoc(50, 1024 - (20 * i))
+    gem_board.ui.bars[i]:setLayer(gem_board.ui.layer)
   end
   gem_board.dungeon = Dungeon.new(1)
   gem_board.room_number = 0
@@ -154,7 +167,12 @@ local function handle_matches()
 	  gem_board.monsters[1].inspiration = gem_board.monsters[1].inspiration - damage[g]
 	  if gem_board.monsters[1].inspiration < 0 then
 	    printf("Monster killed.")
+	    local b = tremove(gem_board.ui.bars, 1)
+	    gem_board.ui.bars[#gem_board.ui.bars + 1] = b
+	    b:setVisible(false)
 	    tremove(gem_board.monsters, 1)
+	  else
+	    gem_board.ui.bars[1]:display_value(gem_board.monsters[1].inspiration, 0, gem_board.monsters[1].max_inspiration)
 	  end
 	end
       end
