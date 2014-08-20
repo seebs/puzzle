@@ -6,7 +6,7 @@ local sprintf = Util.sprintf
 function UI_Bar.new(width, height, min, max)
   local o = {}
   o.width = width or 150
-  o.height = height or 15
+  o.height = height or 20
   o.min = min or 0
   o.max = max or 100
 
@@ -17,7 +17,7 @@ function UI_Bar.new(width, height, min, max)
   o.group:addChild(o.nine)
   o.nine:setLoc(0, 0)
 
-  o.label = flower.Label("", o.width, o.height, nil, o.height - 2)
+  o.label = flower.Label("", o.width, o.height, nil, o.height * 0.8)
   Rainbow.color_styles(o.label)
   o.group:addChild(o.label)
   o.label:setLoc(0, 0)
