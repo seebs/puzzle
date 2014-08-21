@@ -24,6 +24,7 @@ local conv = {
 local stat_scales = {
 	inspiration = 5,
 	wordcount = 1,
+	defense = 2,
 }
 
 local base_scale = 20

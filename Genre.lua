@@ -75,7 +75,11 @@ function Genre.list(value)
     value = 0
   end
   for i = 1, #Genre.genres do
-    t[Genre.genres[i]] = value
+    if type(value) == 'function' then
+      t[Genre.genres[i]] = value()
+    else
+      t[Genre.genres[i]] = value
+    end
   end
   return t
 end

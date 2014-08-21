@@ -25,7 +25,7 @@ function Formation.new(type, ...)
       f.slots[i].element:set_flags(f.slots[i].flags)
     end
   end
-  f.stats = f:compute_stats()
+  f.stats, f.details = f:compute_stats()
   f.inspiration = f.stats.inspiration.total
   f.max_inspiration = f.stats.inspiration.total
   return f
@@ -33,13 +33,19 @@ end
 
 function Formation:compute_stats()
   local totals = {}
+  local details = {}
   for _, slot in pairs(self.slots) do
     if slot.element then
       local stats = slot.element:stats(slot.flags)
-      for stat, details in pairs(stats) do
+      for stat, data in pairs(stats) do
         totals[stat] = totals[stat] or Genre.list(0)
+        details[stat] = details[stat] or Genre.list(function() return {} end)
 	for genre in Genre.iterate() do
-	  totals[stat][genre] = totals[stat][genre] + (details[genre] or 0)
+	  if data[genre] ~= 0 then
+	    totals[stat][genre] = totals[stat][genre] + data[genre]
+	    details[stat][genre] = details[stat][genre] or {}
+	    details[stat][genre][#details[stat][genre] + 1] = data[genre]
+	  end
 	end
       end
     end
@@ -47,7 +53,7 @@ function Formation:compute_stats()
   for k, v in pairs(totals) do
     Util.tsum(v)
   end
-  return totals
+  return totals, details
 end
 
 function Formation:inspect()
@@ -61,10 +67,15 @@ function Formation:inspect()
     end
   end
   printf("Total stats:")
-  for stat, details in pairs(self.stats) do
+  for stat, data in pairs(self.stats) do
     printf("  %s:", stat)
-    for genre, value in pairs(details) do
-      printf("    %s: %d", genre, value)
+    for genre, value in pairs(data) do
+      local details = self.details[stat][genre] or {}
+      local strings = {}
+      for i = 1, #details do
+        strings[i] = sprintf("%d", details[i])
+      end
+      printf("    %s: %d (%s)", genre, value, table.concat(strings, ", "))
     end
   end
 end

@@ -4,6 +4,7 @@ local sprintf = Util.sprintf
 
 local sqrt = math.sqrt
 local floor = math.floor
+local pow = math.pow
 
 local Element = {}
 
@@ -15,6 +16,7 @@ Element.internal = {
       character = {
         inspiration = 'C',
 	wordcount = 'D',
+	defense = 'E',
       },
       protagonist = {
         wordcount = 'E',
@@ -28,15 +30,17 @@ Element.internal = {
       character = {
         inspiration = 'D',
 	wordcount = 100,
+	defense = 'C',
       },
       antagonist = {
         inspiration = 100,
+	defense = 'D',
       }
     }
   },
 }
 
-Element.statistics = { 'inspiration', 'wordcount' }
+Element.statistics = { 'inspiration', 'wordcount', 'defense' }
 
 local function make_stat(tab, key, tier)
   local s = tab[key]
@@ -164,12 +168,28 @@ function Element:inspect(prefix)
   end
 end
 
+function Element:take_damage(genre, damage)
+  local defense = self.status.defense or 0
+  local odamage = damage
+  if damage < 1 then
+    return 0
+  end
+  local scale = pow(2, defense / damage)
+  damage = damage / scale
+  printf("%s taking damage: %s, %d. Defense %d, final %d.", self.name, genre, odamage, defense, damage)
+  if self.inspiration then
+    self.inspiration = self.inspiration - damage
+  end
+  return damage
+end
+
 Element.memberhash = {
   stats = Element.stats,
   gain_experience = Element.gain_experience,
   inspect = Element.inspect,
   set_flags = Element.set_flags,
-  maybe_level = Element.maybe_level
+  maybe_level = Element.maybe_level,
+  take_damage = Element.take_damage
 }
 
 return Element

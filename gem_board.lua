@@ -117,6 +117,7 @@ function gem_board.onOpen()
   gem_board.logic_coroutine:run(gem_board.logic_loop)
   -- initial setup: grab the first room
   player.formation.inspiration = player.formation.max_inspiration
+  player.formation:inspect()
   gem_board.check_monsters()
 end
 
@@ -160,28 +161,37 @@ local function handle_matches()
       total = total + subtotal
     end
   end
-  local damage = Genre.list(0)
+  local damage = Genre.list(function() return {} end)
+  local wordcounts = player.formation.details.wordcount
   for g, v in pairs(totals) do
-    local wc = player.formation.stats.wordcount[g] or 0
-    damage[g] = wc * v / 3
-    damage[g] = damage[g] * (1 + (.1 * combos))
+    local scale = (v / 3) * (1 + (.1 * combos))
+    local wc = wordcounts[g] or {}
+    damage[g] = {}
+    if #wc > 0 then
+      for i = 1, #wc do
+        damage[g][i] = wc[i] * scale
+      end
+    end
   end
   if true then
     printf("Total %d combo.", combos)
     for i = 1, 6 do
       local g = Genre.genre(i)
-      if damage[g] then
-        printf("%s: %d", g, damage[g])
-	if gem_board.monsters and gem_board.monsters[1] then
-	  gem_board.monsters[1].inspiration = gem_board.monsters[1].inspiration - damage[g]
-	  if gem_board.monsters[1].inspiration < 0 then
-	    local idx = gem_board.monsters[1].idx
-	    printf("Monster killed.")
-            gem_board.ui.bars[idx]:setVisible(false)
-            gem_board.ui.monster_portraits[idx]:setVisible(false)
-	    tremove(gem_board.monsters, 1)
-	  else
-	    gem_board.ui.bars[1]:display_value(gem_board.monsters[1].inspiration, 0, gem_board.monsters[1].max_inspiration)
+      if damage[g] and #damage[g] > 0 then
+	for i = 1, #damage[g] do
+	  local d = damage[g][i]
+	  if gem_board.monsters and gem_board.monsters[1] then
+	    gem_board.monsters[1]:take_damage(g, d)
+	    printf("Monsters[1]: New health %d", gem_board.monsters[1].inspiration)
+	    if gem_board.monsters[1].inspiration < 0 then
+	      local idx = gem_board.monsters[1].idx
+	      printf("Monster killed.")
+              gem_board.ui.bars[idx]:setVisible(false)
+              gem_board.ui.monster_portraits[idx]:setVisible(false)
+	      tremove(gem_board.monsters, 1)
+	    else
+	      gem_board.ui.bars[1]:display_value(gem_board.monsters[1].inspiration, 0, gem_board.monsters[1].max_inspiration)
+	    end
 	  end
 	end
       end
