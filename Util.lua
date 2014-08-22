@@ -1,5 +1,9 @@
 local Util = {}
 
+local floor = math.floor
+local ceil = math.ceil
+local pow = math.pow
+
 io.output():setvbuf('no')
 
 function Util.sprintf(fmt, ...)
@@ -227,5 +231,16 @@ function Util.dump(obj, name, prefix, seen)
   end
 end
 
+function Util.damage(damage, defense)
+  if not damage or damage < 1 then
+    return 0
+  end
+  if not defense or defense < 0 then
+    defense = 0
+  end
+  local scale = pow(2, defense / damage)
+  damage = ceil(damage / scale)
+  return damage
+end
 
 return Util

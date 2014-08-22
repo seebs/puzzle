@@ -73,12 +73,12 @@ local function color_style(style, color, g, b)
     s:setSize(size)
     s:setScale(scale)
     s:setColor(r / 255, g / 255, b / 255, 1)
-    -- printf("New style for font size %d, scale %.1f, color %s, %.2f %.2f %.2f",
-    --   size, scale, Rainbow.data[color].name, r / 255, g / 255, b / 255)
+    printf("New style for font size %d, scale %.1f, color %s, %.2f %.2f %.2f",
+      size, scale, tostring(color), r / 255, g / 255, b / 255)
     tab[color] = s
   else
     -- printf("Reusing style for font size %d, scale %.1f, color %s",
-    --   size, scale, Rainbow.data[color].name)
+    --   size, scale, tostring(color))
   end
   return tab[color]
 end
@@ -86,6 +86,7 @@ end
 function Rainbow.color_styles(textbox)
   local base = textbox:getStyle()
   textbox:setStyle(color_style(base, '#000000'))
+  textbox:setStyle('white', color_style(base, '#ffffff'))
   for i = 1, 6 do
     textbox:setStyle(Rainbow.data[i].name, color_style(base, i))
   end

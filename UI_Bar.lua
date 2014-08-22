@@ -6,7 +6,7 @@ local sprintf = Util.sprintf
 function UI_Bar.new(width, height, min, max)
   local o = {}
   o.width = width or 150
-  o.height = height or 20
+  o.height = height or 30
   o.min = min or 0
   o.max = max or 100
 
@@ -31,11 +31,16 @@ function UI_Bar:display_value(value, min, max)
   self.max = max or self.max
   local scale = (value - self.min) / (self.max - self.min)
   self.nine:setSize(self.width * scale, self.height)
-  self.label:setString(sprintf("%d/%d", value, max))
+  self.label:setString(sprintf("<white>%d/%d</>", value, max))
+end
+
+function UI_Bar:setColor(...)
+  return self.nine:setColor(...)
 end
 
 UI_Bar.memberhash = {
-  display_value = UI_Bar.display_value
+  display_value = UI_Bar.display_value,
+  setColor = UI_Bar.setColor
 }
 
 Util.makepassthrough(UI_Bar.memberhash, 'group')

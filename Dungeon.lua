@@ -9,6 +9,13 @@ local templates = {
 	        { id = 2, level = 5 },
 	        { id = 2, level = 5 },
 	      }
+	    },
+	    {
+	      monsters = {
+	        { id = 2, level = 3 },
+	        { id = 2, level = 7 },
+	        { id = 2, level = 3 },
+	      }
 	    }
 	  }
 	},

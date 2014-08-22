@@ -35,22 +35,26 @@ function gem_board.logic_loop()
   return
 end
 
+local function portrait_x(count, idx, size)
+  local pwidth = (size * count)
+  local center = flower.viewWidth / 2
+  local offset = pwidth / 2
+  return (center - offset) + (size * (idx - 1))
+end
+
 function gem_board.check_monsters()
+  local alive = 0
   if gem_board.monsters then
-    local remove = {}
     printf("Checking monsters:")
     for i = 1, #gem_board.monsters do
       local mon = gem_board.monsters[i]
       printf("%d: %s [%d/%d]", i, mon.name, mon.inspiration, mon.max_inspiration)
-      if mon.status.inspiration <= 0 then
-        remove[#remove + 1] = i
+      if mon.inspiration > 0 then
+        alive = alive + 1
       end
     end
-    for i = #remove, 1, -1 do
-      tremove(gem_board.monsters, remove[i])
-    end
   end
-  if not gem_board.monsters or #gem_board.monsters < 1 then
+  if alive < 1 then
     gem_board.room_number = gem_board.room_number + 1
     gem_board.room = gem_board.dungeon.rooms[gem_board.room_number]
     if not gem_board.room then
@@ -64,12 +68,18 @@ function gem_board.check_monsters()
       e.inspiration = e.status.inspiration
       e.idx = i
       printf("Adding monster (%s, level %d, health %d)", e.name, e.level, e.inspiration)
+      local x = portrait_x(#gem_board.room.monsters, i, 150)
       gem_board.monsters[i] = e
       gem_board.ui.bars[i]:setVisible(true)
+      gem_board.ui.bars[i]:setLoc(x, 875)
       gem_board.ui.bars[i]:setColor(Genre.rgb(e.genre))
       gem_board.ui.bars[i]:display_value(e.inspiration, 0, e.max_inspiration)
       gem_board.ui.monster_portraits[i]:display_element(e)
+      gem_board.ui.monster_portraits[i]:setLoc(x + 65, 950)
     end
+    local pwidth = #gem_board.monsters * 150
+    local center = flower.viewWidth / 2
+    local os
   end
 end
 
@@ -90,6 +100,18 @@ function gem_board.onCreate()
   gem_board.scene:addChild(gem_board.ui.layer)
   gem_board.ui.bars = {}
   gem_board.ui.player_portraits = {}
+  local pwidth = #player.formation.slots * 150
+  local center = flower.viewWidth / 2
+  local offset = pwidth / 2
+  for i = 1, #player.formation.slots do
+    local p = Portrait.new()
+    p:setLayer(gem_board.ui.layer)
+    p:setLoc(portrait_x(#player.formation.slots, i, 150), 75)
+    p:setScl(0.8)
+    p:display_element(player.formation.slots[i].element)
+    gem_board.ui.player_portraits[i] = p
+    p:setVisible(true)
+  end
   gem_board.ui.monster_portraits = {}
   for i = 1, 5 do
     gem_board.ui.bars[i] = UI_Bar.new()
@@ -180,17 +202,53 @@ local function handle_matches()
       if damage[g] and #damage[g] > 0 then
 	for i = 1, #damage[g] do
 	  local d = damage[g][i]
-	  if gem_board.monsters and gem_board.monsters[1] then
-	    gem_board.monsters[1]:take_damage(g, d)
-	    printf("Monsters[1]: New health %d", gem_board.monsters[1].inspiration)
-	    if gem_board.monsters[1].inspiration < 0 then
-	      local idx = gem_board.monsters[1].idx
-	      printf("Monster killed.")
-              gem_board.ui.bars[idx]:setVisible(false)
-              gem_board.ui.monster_portraits[idx]:setVisible(false)
-	      tremove(gem_board.monsters, 1)
+	  if gem_board.monsters then
+	    local best = nil
+	    local best_overkill = nil
+	    local most = nil
+	    local most_damage = nil
+	    local target = nil
+	    for i = 1, #gem_board.monsters do
+	      local mon = gem_board.monsters[i]
+	      if mon.inspiration > 0 then
+	        local damage = mon:damage_from(g, d)
+		printf("Would do %d damage to monster %d.", damage, i)
+		if damage >= mon.inspiration then
+		  if not best then
+		    best = mon
+		    best_overkill = damage - mon.inspiration
+		  else
+		    -- we prefer to overkill as little as possible
+		    if (damage - mon.inspiration) < best_overkill then
+		      best = mon
+		      best_overkill = damage - mon.inspiration
+		    end
+		  end
+		end
+		if not most then
+		  most = mon
+		  most_damage = damage
+		else
+		  if damage > most_damage then
+		    most = mon
+		    most_damage = damage
+		  end
+		end
+	      end
+	    end
+	    local target = best or most
+	    if not target then
+	      printf("Whoops, nothing to damage?")
 	    else
-	      gem_board.ui.bars[1]:display_value(gem_board.monsters[1].inspiration, 0, gem_board.monsters[1].max_inspiration)
+	      target:take_damage(g, d)
+	      printf("Monsters[%d]: New health %d/%d", target.idx, target.inspiration, target.max_inspiration)
+	      if target.inspiration < 0 then
+		printf("Monster killed.")
+		gem_board.ui.bars[target.idx]:setVisible(false)
+		gem_board.ui.monster_portraits[target.idx]:setVisible(false)
+	      else
+		gem_board.ui.bars[target.idx]:display_value(target.inspiration, 0, target.max_inspiration)
+	      end
 	    end
 	  end
 	end

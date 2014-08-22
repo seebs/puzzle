@@ -168,19 +168,20 @@ function Element:inspect(prefix)
   end
 end
 
-function Element:take_damage(genre, damage)
+function Element:damage_from(genre, damage)
   local defense = self.status.defense or 0
   local odamage = damage
-  if damage < 1 then
-    return 0
-  end
-  local scale = pow(2, defense / damage)
-  damage = damage / scale
-  printf("%s taking damage: %s, %d. Defense %d, final %d.", self.name, genre, odamage, defense, damage)
+  damage = Util.damage(damage, defense)
+  return damage, defense
+end
+
+function Element:take_damage(genre, damage)
+  local ndamage, defense = self:damage_from(genre, damage)
+  printf("%s taking damage: %s, %d. Defense %d, final %d.", self.name, genre, damage, defense, ndamage)
   if self.inspiration then
-    self.inspiration = self.inspiration - damage
+    self.inspiration = self.inspiration - ndamage
   end
-  return damage
+  return ndamage
 end
 
 Element.memberhash = {
@@ -189,7 +190,8 @@ Element.memberhash = {
   inspect = Element.inspect,
   set_flags = Element.set_flags,
   maybe_level = Element.maybe_level,
-  take_damage = Element.take_damage
+  take_damage = Element.take_damage,
+  damage_from = Element.damage_from,
 }
 
 return Element
