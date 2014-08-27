@@ -48,9 +48,15 @@ function Portrait.new(layer)
 end
 
 function Portrait:display_element(element)
-  self.snapshot:setTexture(sprintf("elements/%s.png", element.name))
-  self.snapshot_background:setIndex(Genre.color(element.genre) or 7)
-  self:setVisible(true)
+  if element then
+	self.snapshot:setTexture(sprintf("elements/%s.png", element.name))
+	self.snapshot_background:setIndex(Genre.color(element.genre) or 7)
+	self:setVisible(true)
+  else
+	self.snapshot:setTexture(sprintf("elements/blank.png"))
+	self.snapshot_background:setIndex(7)
+	self:setVisible(true)
+  end
 end
 
 Portrait.memberhash = {
