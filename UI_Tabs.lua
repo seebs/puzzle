@@ -34,7 +34,6 @@ function UI_Tabs.new(layer, args, tablist)
 
   for i = 1, #self.tabdefs do
     local tab = self.tabdefs[i]
-    Util.dump(tab)
     local t
     t = UI_Button.new(tab[1], self.tabwidth, self.tabheight, UI_Tabs.callback, self, tab[1])
     self.group:addChild(t)

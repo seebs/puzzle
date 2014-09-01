@@ -73,8 +73,8 @@ local function color_style(style, color, g, b)
     s:setSize(size)
     s:setScale(scale)
     s:setColor(r / 255, g / 255, b / 255, 1)
-    printf("New style for font size %d, scale %.1f, color %s, %.2f %.2f %.2f",
-      size, scale, tostring(color), r / 255, g / 255, b / 255)
+    -- printf("New style for font size %d, scale %.1f, color %s, %.2f %.2f %.2f",
+      -- size, scale, tostring(color), r / 255, g / 255, b / 255)
     tab[color] = s
   else
     -- printf("Reusing style for font size %d, scale %.1f, color %s",

@@ -33,7 +33,7 @@ function main_ui.onCreate()
   main_ui.scene:addChild(main_ui.ui.layer)
   
   if not main_ui.ui.tabs then
-    main_ui.ui.tabs = UI_Tabs.new(main_ui.ui.layer, nil, { {"board", "gem_board"}, {"list", "element_list"}})
+    main_ui.ui.tabs = UI_Tabs.new(main_ui.ui.layer, nil, { {"board", "gem_board"}, {"elements", "element_list"}, {"tropes", "trope_list"}, {"formations", "formation_list"} })
   end
 end
 
